@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Bot, Download, Eye, FileImage, FileText, Pencil, Plus, Search, Sparkles, Trash2, Upload, Video } from 'lucide-react';
+import { ArrowLeft, Bot, Check, Download, Eye, FileImage, FileText, Pencil, Plus, Search, Send, Sparkles, Trash2, Upload, Video, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Badge, Button, GlassCard, Input, Modal, Select, TextArea } from '@/components/ui/UIComponents';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,7 +17,7 @@ import {
   getAccessibilitySubcategoryLabel,
   resolveAccessibilityTaxonomy,
 } from '@/features/accessibility/accessibilityAuditConfig';
-import { Permission, ProjectReport, ProjectReportEntry, ProjectReportEntryMedia, ProjectReportEntryOutcome, ProjectReportEntrySeverity, ProjectReportEntryStatus, ProjectReportOutputLocale, ReportBuilderTemplateVersion, Role } from '@/types';
+import { Permission, ProjectReport, ProjectReportEntry, ProjectReportEntryMedia, ProjectReportEntryOutcome, ProjectReportEntrySeverity, ProjectReportEntryStatus, ProjectReportOutputLocale, ReportBuilderTemplateVersion, Role, isInternalRole } from '@/types';
 
 const SEVERITIES: ProjectReportEntrySeverity[] = ['HIGH', 'MEDIUM', 'LOW'];
 const DEFAULT_ENTRY_STATUS: ProjectReportEntryStatus = 'OPEN';
@@ -27,6 +27,19 @@ const EVIDENCE_UPLOAD_LIMIT_MB = 50;
 
 type EvidenceUploadSlot = 'image' | 'video';
 type EvidenceUploadStatus = 'idle' | 'uploading' | 'uploaded' | 'error';
+
+interface ApprovalInfo {
+  id: string;
+  status: string;
+  entityType: string;
+  entityId: string;
+  stepOrder?: number;
+  approver?: { id: string; name: string };
+  requestedBy?: { name: string };
+  reviewedBy?: { name: string };
+  reviewedAt?: string;
+  comment?: string | null;
+}
 
 const emptyEntryDraft = {
   serviceName: '',
@@ -467,6 +480,9 @@ export const ProjectReportWorkspace: React.FC = () => {
   const [exportingPdf, setExportingPdf] = React.useState(false);
   const [generatingAi, setGeneratingAi] = React.useState(false);
   const [savingEntry, setSavingEntry] = React.useState(false);
+  const [approvalSteps, setApprovalSteps] = React.useState<ApprovalInfo[]>([]);
+  const [approvalReview, setApprovalReview] = React.useState<{ id: string; action: 'approve' | 'reject' } | null>(null);
+  const [approvalComment, setApprovalComment] = React.useState('');
   const [uploadProgress, setUploadProgress] = React.useState<Record<EvidenceUploadSlot, number>>({ image: 0, video: 0 });
   const [uploadStatus, setUploadStatus] = React.useState<Record<EvidenceUploadSlot, EvidenceUploadStatus>>({
     image: 'idle',
@@ -616,6 +632,30 @@ export const ProjectReportWorkspace: React.FC = () => {
   const summaryCompliance = toDisplayText((report?.summaryJson as any)?.complianceSummary);
   const summaryRecommendations = toDisplayText((report?.summaryJson as any)?.recommendationsSummary);
 
+  const loadApprovals = React.useCallback(async () => {
+    if (!reportId) return;
+    try {
+      const list = await api.approvals.getByEntity('REPORT', reportId);
+      const normalized = (list || []).map((approval: any) => ({
+        id: approval.id,
+        status: approval.status,
+        entityType: approval.entityType,
+        entityId: approval.entityId,
+        stepOrder: approval.stepOrder,
+        approver: approval.approver,
+        requestedBy: approval.requestedBy,
+        reviewedBy: approval.reviewedBy,
+        reviewedAt: approval.reviewedAt,
+        comment: approval.comment,
+      })) as ApprovalInfo[];
+      normalized.sort((a, b) => (a.stepOrder ?? 1) - (b.stepOrder ?? 1));
+      setApprovalSteps(normalized);
+    } catch (error) {
+      console.error('Failed to load report approvals', error);
+      setApprovalSteps([]);
+    }
+  }, [reportId]);
+
   const loadData = React.useCallback(async () => {
     if (!reportId) return;
     try {
@@ -626,13 +666,14 @@ export const ProjectReportWorkspace: React.FC = () => {
       setReport(reportData);
       setEntries((entryData || []).map(normalizeWorkspaceEntry));
       setPreviewLocale(reportData.outputLocale || getAccessibilityOutputLocale(reportData.templateVersion));
+      await loadApprovals();
     } catch (error) {
       console.error(error);
       toast.error('Failed to load accessibility report.');
     } finally {
       setLoading(false);
     }
-  }, [reportId]);
+  }, [loadApprovals, reportId]);
 
   React.useEffect(() => {
     loadData();
@@ -871,6 +912,65 @@ export const ProjectReportWorkspace: React.FC = () => {
     }
   };
 
+  const handleRequestReportApproval = async () => {
+    if (!reportId || !projectId || !report) return;
+    try {
+      await api.approvals.create({ entityType: 'REPORT', entityId: reportId, projectId });
+      const updated = report.status === 'DRAFT'
+        ? await api.reportBuilderProjects.updateProjectReport(reportId, { status: 'IN_REVIEW' })
+        : report;
+      setReport(updated);
+      await loadApprovals();
+      toast.success(isArabic ? ar('ØªÙ… Ø·Ù„Ø¨ Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹Ø©.') : 'Approval requested.');
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error?.message || (isArabic ? ar('ØªØ¹Ø°Ø± Ø·Ù„Ø¨ Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹Ø©.') : 'Failed to request approval.'));
+    }
+  };
+
+  const handleReviewApproval = async () => {
+    if (!reportId || !approvalReview) return;
+    const step = approvalSteps.find((item) => item.id === approvalReview.id);
+    if (!step) return;
+    try {
+      if (approvalReview.action === 'approve') {
+        await api.approvals.approve(step.id, approvalComment || undefined);
+      } else {
+        await api.approvals.reject(step.id, approvalComment || undefined);
+      }
+
+      const refreshed = await api.approvals.getByEntity('REPORT', reportId);
+      const normalized = (refreshed || []).map((approval: any) => ({
+        id: approval.id,
+        status: approval.status,
+        entityType: approval.entityType,
+        entityId: approval.entityId,
+        stepOrder: approval.stepOrder,
+        approver: approval.approver,
+        requestedBy: approval.requestedBy,
+        reviewedBy: approval.reviewedBy,
+        reviewedAt: approval.reviewedAt,
+        comment: approval.comment,
+      })) as ApprovalInfo[];
+      normalized.sort((a, b) => (a.stepOrder ?? 1) - (b.stepOrder ?? 1));
+      setApprovalSteps(normalized);
+
+      const nextStatus: ProjectReport['status'] = approvalReview.action === 'reject'
+        ? 'DRAFT'
+        : normalized.length > 0 && normalized.every((item) => item.status === 'APPROVED')
+          ? 'APPROVED'
+          : 'IN_REVIEW';
+      const updated = await api.reportBuilderProjects.updateProjectReport(reportId, { status: nextStatus });
+      setReport(updated);
+      setApprovalReview(null);
+      setApprovalComment('');
+      toast.success(approvalReview.action === 'approve' ? (isArabic ? ar('ØªÙ… Ø§Ù„Ù…ÙˆØ§ÙÙ‚Ø© Ø¹Ù„Ù‰ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.') : 'Report approved.') : (isArabic ? ar('ØªÙ… Ø±ÙØ¶ Ø§Ù„ØªÙ‚Ø±ÙŠØ±.') : 'Report rejected.'));
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error?.message || (isArabic ? ar('ØªØ¹Ø°Ø± Ù…Ø±Ø§Ø¬Ø¹Ø© Ø§Ù„ØªÙ‚Ø±ÙŠØ±.') : 'Failed to review report approval.'));
+    }
+  };
+
   const handleOutputLocaleChange = async (locale: ProjectReportOutputLocale) => {
     if (!reportId || !canEditReport || !report || report.outputLocale === locale) return;
     try {
@@ -954,6 +1054,50 @@ export const ProjectReportWorkspace: React.FC = () => {
             </div>
           )}
 
+          {approvalSteps.length > 0 && (
+            <GlassCard className="max-w-xl border-slate-200 bg-white/80 p-4 dark:border-slate-800 dark:bg-slate-900/60">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Report approvals</p>
+                {approvalSteps.some((step) => step.status === 'REJECTED') && <Badge variant="danger">Rejected</Badge>}
+                {!approvalSteps.some((step) => step.status === 'REJECTED') && approvalSteps.every((step) => step.status === 'APPROVED') && <Badge variant="success">Approved</Badge>}
+                {approvalSteps.some((step) => step.status === 'PENDING') && <Badge variant="warning">Pending approval</Badge>}
+              </div>
+              <div className="mt-3 space-y-2">
+                {approvalSteps.map((step) => (
+                  <div key={step.id} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-950/40">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">
+                          Step {step.stepOrder ?? 1}
+                          {step.approver?.name ? ` · ${step.approver.name}` : ''}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {step.requestedBy?.name ? `Requested by ${step.requestedBy.name}` : 'Approval request'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={step.status === 'APPROVED' ? 'success' : step.status === 'REJECTED' ? 'danger' : 'warning'}>
+                          {step.status}
+                        </Badge>
+                        {isInternalRole(user?.role) && step.status === 'PENDING' && (
+                          <>
+                            <Button variant="ghost" size="sm" className="text-[hsl(var(--brand-success))]" onClick={() => setApprovalReview({ id: step.id, action: 'approve' })}>
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-rose-400" onClick={() => setApprovalReview({ id: step.id, action: 'reject' })}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {step.comment && <p className="mt-2 text-xs text-slate-500">Comment: {step.comment}</p>}
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          )}
+
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => handlePreview(previewLocale)} disabled={previewLoading}>
             <Eye className="mr-2 h-4 w-4" /> {previewLoading ? copy.loadingPreview : copy.previewReport}
@@ -976,6 +1120,11 @@ export const ProjectReportWorkspace: React.FC = () => {
           {canEditReport && report.status === 'DRAFT' && (
             <Button variant="outline" onClick={() => handleStatusChange('IN_REVIEW')}>
               {copy.submitForReview}
+            </Button>
+          )}
+          {canEditReport && (report.status === 'DRAFT' || report.status === 'IN_REVIEW') && (
+            <Button variant="outline" onClick={handleRequestReportApproval}>
+              <Send className="mr-2 h-4 w-4" /> {isArabic ? ar('Ø·Ù„Ø¨ Ù…Ø±Ø§Ø¬Ø¹Ø©') : 'Request approval'}
             </Button>
           )}
           {canPublishReports && report.status === 'IN_REVIEW' && (
@@ -1202,6 +1351,38 @@ export const ProjectReportWorkspace: React.FC = () => {
           </table>
         </div>
       </GlassCard>
+
+      <Modal
+        isOpen={!!approvalReview}
+        onClose={() => { setApprovalReview(null); setApprovalComment(''); }}
+        title={approvalReview?.action === 'approve'
+          ? (isArabic ? ar('Ø§Ù„Ù…ÙˆØ§ÙÙ‚Ø© Ø¹Ù„Ù‰ Ø§Ù„ØªÙ‚Ø±ÙŠØ±') : 'Approve report')
+          : (isArabic ? ar('Ø±ÙØ¶ Ø§Ù„ØªÙ‚Ø±ÙŠØ±') : 'Reject report')}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {approvalReview?.action === 'approve'
+              ? (isArabic ? ar('Ø³ÙŠØªÙ… Ø¥Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„Ø·Ø¨Ù‚Ø© ÙˆØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø§Ù„ØªÙ‚Ø±ÙŠØ± ÙÙˆØ±ÙŠÙ‹Ø§.') : 'This step will be approved and the report status will update immediately.')
+              : (isArabic ? ar('Ø³ÙŠØªÙ… Ø±ÙØ¶ Ø§Ù„Ø·Ø¨Ù‚Ø© ÙˆØ¥Ø±Ø¬Ø§Ø¹ Ø§Ù„ØªÙ‚Ø±ÙŠØ± Ø¥Ù„Ù‰ Ø§Ù„Ù…Ø³ÙˆØ¯Ø©.') : 'This step will be rejected and the report will be returned to draft.')}
+          </p>
+          <TextArea
+            label={isArabic ? ar('ØªØ¹Ù„ÙŠÙ‚ Ø§Ø®ØªÙŠØ§Ø±ÙŠ') : 'Optional comment'}
+            value={approvalComment}
+            onChange={(event) => setApprovalComment(event.target.value)}
+            placeholder={isArabic ? ar('Ø§ÙƒØªØ¨ Ù…Ù„Ø§Ø­Ø¸Ø§Øª Ø§Ø®ØªÙŠØ§Ø±ÙŠØ©...') : 'Write an optional note...'}
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => { setApprovalReview(null); setApprovalComment(''); }}>
+              {copy.cancel}
+            </Button>
+            <Button onClick={handleReviewApproval}>
+              {approvalReview?.action === 'approve'
+                ? (isArabic ? ar('Ø§Ù„Ù…ÙˆØ§ÙÙ‚Ø©') : 'Approve')
+                : (isArabic ? ar('Ø±ÙØ¶') : 'Reject')}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal isOpen={entryModalOpen} onClose={closeEntryModal} title={editingEntry ? copy.editFinding : copy.newObservation} maxWidth="max-w-5xl">
         <form className="space-y-8" onSubmit={handleSaveEntry}>

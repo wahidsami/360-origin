@@ -26,7 +26,7 @@ This tracker reflects the current codebase audit, not the older baseline reports
 ## Phase 2 - Workflow Engines
 
 - [x] Expand automation beyond notification creation into assign, update, email, and webhook actions.
-- [ ] Wire approvals more fully into reports, invoices, and contracts.
+- [x] Wire approvals more fully into reports, invoices, and contracts.
 - [ ] Apply SLA policies from real entity lifecycle events.
 - [ ] Make recurring tasks and finance events generate the right notifications and audit trail entries.
 
