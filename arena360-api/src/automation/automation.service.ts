@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { IntegrationsService } from '../integrations/integrations.service';
+import { EmailService } from '../email/email.service';
 import { AutomationTriggerEntity, AutomationTriggerEvent, AutomationActionType } from '@prisma/client';
 
 export interface TriggerPayload {
@@ -12,11 +14,20 @@ export interface TriggerPayload {
   previousEntity?: Record<string, any>;
 }
 
+type AutomationActionKind =
+  | 'CREATE_NOTIFICATION'
+  | 'SEND_EMAIL'
+  | 'DISPATCH_WEBHOOK'
+  | 'UPDATE_STATUS'
+  | 'ASSIGN_USER';
+
 @Injectable()
 export class AutomationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly integrations: IntegrationsService,
+    private readonly emailService: EmailService,
   ) { }
 
   async evaluateRules(payload: TriggerPayload): Promise<void> {
@@ -78,53 +89,196 @@ export class AutomationService {
     });
   }
 
-  private async runAction(rule: any, payload: TriggerPayload): Promise<void> {
+  private getActionKind(rule: any): AutomationActionKind {
     const config = rule.actionConfig as Record<string, any> || {};
-    if (rule.actionType === AutomationActionType.CREATE_NOTIFICATION) {
-      const userIdField = config.userIdField ?? 'assigneeId';
-      let userId = payload.entity[userIdField];
+    const candidate = String(config.actionKind || rule.actionType || 'CREATE_NOTIFICATION').toUpperCase();
+    if (candidate === 'SEND_EMAIL') return 'SEND_EMAIL';
+    if (candidate === 'DISPATCH_WEBHOOK') return 'DISPATCH_WEBHOOK';
+    if (candidate === 'UPDATE_STATUS') return 'UPDATE_STATUS';
+    if (candidate === 'ASSIGN_USER') return 'ASSIGN_USER';
+    return 'CREATE_NOTIFICATION';
+  }
 
-      // fallback: if the field is not on the entity, check if it's a static ID
-      if (!userId && (userIdField.length === 25 || userIdField.length === 36)) {
-        userId = userIdField;
+  private getEntityDefaults(payload: TriggerPayload) {
+    let defaultTitle = 'Update';
+    let defaultLink = '/app/dashboard';
+    let notificationType: any = 'TASK_ASSIGNED';
+
+    if (payload.entityType === AutomationTriggerEntity.TASK) {
+      defaultTitle = payload.entity.title || 'Task Update';
+      defaultLink = `/app/projects/${payload.entity.projectId}?tab=tasks`;
+      notificationType = payload.event === AutomationTriggerEvent.STATUS_CHANGED ? 'TASK_STATUS_CHANGE' : 'TASK_ASSIGNED';
+    } else if (payload.entityType === AutomationTriggerEntity.FINDING) {
+      defaultTitle = payload.entity.title || 'Finding Update';
+      defaultLink = `/app/projects/${payload.entity.projectId}?tab=findings`;
+      notificationType = payload.event === AutomationTriggerEvent.STATUS_CHANGED ? 'FINDING_STATUS_CHANGE' : 'FINDING_ASSIGNED';
+    } else if (payload.entityType === AutomationTriggerEntity.INVOICE) {
+      defaultTitle = payload.entity.invoiceNumber || 'Invoice Update';
+      defaultLink = `/app/projects/${payload.entity.projectId}?tab=financials`;
+      notificationType = 'INVOICE_OVERDUE';
+    }
+
+    return { defaultTitle, defaultLink, notificationType };
+  }
+
+  private async getRecipientFromConfig(config: Record<string, any>, payload: TriggerPayload): Promise<{ email: string; userId?: string; orgName: string } | null> {
+    const userIdField = config.userIdField ?? config.recipientUserIdField ?? 'assigneeId';
+    const userId = payload.entity[userIdField] || (typeof config.recipientUserId === 'string' ? config.recipientUserId : undefined);
+    const org = await this.prisma.org.findUnique({
+      where: { id: payload.orgId },
+      select: { name: true },
+    });
+    const orgName = org?.name || 'Arena360';
+
+    if (typeof userId === 'string' && userId.trim()) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+      });
+      if (user?.email) {
+        return { email: user.email, userId, orgName };
       }
+    }
 
-      if (!userId) return;
+    if (typeof config.recipientEmail === 'string' && config.recipientEmail.trim()) {
+      return { email: config.recipientEmail.trim(), orgName };
+    }
 
-      // Smarter defaults based on entity
-      let defaultTitle = 'Update';
-      let defaultLink = '/app/dashboard';
-      let type: any = 'TASK_ASSIGNED';
+    return null;
+  }
 
-      if (payload.entityType === AutomationTriggerEntity.TASK) {
-        defaultTitle = payload.entity.title || 'Task Update';
-        defaultLink = `/app/projects/${payload.entity.projectId}?tab=tasks`;
-        type = payload.event === AutomationTriggerEvent.STATUS_CHANGED ? 'TASK_STATUS_CHANGE' : 'TASK_ASSIGNED';
-      } else if (payload.entityType === AutomationTriggerEntity.FINDING) {
-        defaultTitle = payload.entity.title || 'Finding Update';
-        defaultLink = `/app/projects/${payload.entity.projectId}?tab=findings`;
-        type = payload.event === AutomationTriggerEvent.STATUS_CHANGED ? 'FINDING_STATUS_CHANGE' : 'FINDING_ASSIGNED';
-      } else if (payload.entityType === AutomationTriggerEntity.INVOICE) {
-        defaultTitle = payload.entity.invoiceNumber || 'Invoice Update';
-        defaultLink = `/app/projects/${payload.entity.projectId}?tab=financials`;
-        type = 'INVOICE_OVERDUE';
-      }
+  private async updateEntityStatus(payload: TriggerPayload, config: Record<string, any>): Promise<void> {
+    const targetStatus = config.targetStatus;
+    if (!targetStatus) return;
 
-      const title = this.interpolate(config.titleTemplate || defaultTitle, { ...payload.entity, title: payload.entity.title || 'Item' });
-      const body = config.bodyTemplate ? this.interpolate(config.bodyTemplate, payload.entity) : undefined;
-      const linkUrl = this.interpolate(config.linkUrlTemplate || defaultLink, payload.entity);
+    if (payload.entityType === AutomationTriggerEntity.TASK) {
+      await this.prisma.task.update({
+        where: { id: payload.entityId },
+        data: { status: String(targetStatus).toUpperCase().replace(/-/g, '_') as any },
+      });
+      return;
+    }
 
-      await this.notifications.create({
-        orgId: payload.orgId,
-        userId,
-        type,
-        title,
-        body,
-        linkUrl,
-        entityId: payload.entityId,
-        entityType: payload.entityType.toLowerCase(),
+    if (payload.entityType === AutomationTriggerEntity.FINDING) {
+      await this.prisma.finding.update({
+        where: { id: payload.entityId },
+        data: { status: String(targetStatus).toUpperCase().replace(/-/g, '_') as any },
+      });
+      return;
+    }
+
+    if (payload.entityType === AutomationTriggerEntity.INVOICE) {
+      await this.prisma.invoice.update({
+        where: { id: payload.entityId },
+        data: { status: String(targetStatus).toUpperCase().replace(/-/g, '_') as any },
       });
     }
+  }
+
+  private async assignEntityUser(payload: TriggerPayload, config: Record<string, any>): Promise<void> {
+    const userIdField = config.userIdField ?? config.targetUserIdField ?? 'assigneeId';
+    const userId = payload.entity[userIdField] || config.targetUserId;
+    if (!userId || typeof userId !== 'string') return;
+
+    if (payload.entityType === AutomationTriggerEntity.TASK) {
+      await this.prisma.task.update({
+        where: { id: payload.entityId },
+        data: { assigneeId: userId },
+      });
+      return;
+    }
+
+    if (payload.entityType === AutomationTriggerEntity.FINDING) {
+      await this.prisma.finding.update({
+        where: { id: payload.entityId },
+        data: { assignedToId: userId },
+      });
+    }
+  }
+
+  private async dispatchRuleWebhook(ruleId: string, payload: TriggerPayload, config: Record<string, any>): Promise<void> {
+    const webhookUrl = config.webhookUrl || config.url;
+    const eventName = config.eventName || `automation.${ruleId}`;
+    const body = {
+      event: eventName,
+      ruleId,
+      orgId: payload.orgId,
+      entityType: payload.entityType,
+      entityId: payload.entityId,
+      entity: payload.entity,
+      previousEntity: payload.previousEntity ?? null,
+      timestamp: new Date().toISOString(),
+    };
+
+    if (webhookUrl) {
+      const response = await fetch(String(webhookUrl), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(config.secret ? {
+            'X-Arena360-Signature': await this.buildWebhookSignature(String(config.secret), JSON.stringify(body)),
+          } : {}),
+        },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        throw new Error(`Webhook returned ${response.status}`);
+      }
+      return;
+    }
+
+    await this.integrations.dispatchWebhooks(payload.orgId, eventName, body);
+  }
+
+  private async buildWebhookSignature(secret: string, body: string): Promise<string> {
+    const { createHmac } = await import('crypto');
+    return createHmac('sha256', secret).update(body).digest('hex');
+  }
+
+  private async runAction(rule: any, payload: TriggerPayload): Promise<void> {
+    const config = rule.actionConfig as Record<string, any> || {};
+    const actionKind = this.getActionKind(rule);
+    const { defaultTitle, defaultLink, notificationType } = this.getEntityDefaults(payload);
+
+    if (actionKind === 'UPDATE_STATUS') {
+      await this.updateEntityStatus(payload, config);
+      return;
+    }
+
+    if (actionKind === 'ASSIGN_USER') {
+      await this.assignEntityUser(payload, config);
+      return;
+    }
+
+    const title = this.interpolate(config.titleTemplate || defaultTitle, { ...payload.entity, title: payload.entity.title || 'Item' });
+    const body = config.bodyTemplate ? this.interpolate(config.bodyTemplate, payload.entity) : undefined;
+    const linkUrl = this.interpolate(config.linkUrlTemplate || defaultLink, payload.entity);
+
+    if (actionKind === 'SEND_EMAIL') {
+      const recipient = await this.getRecipientFromConfig(config, payload);
+      if (!recipient) return;
+      await this.emailService.sendNotificationEmail(recipient.email, title, body, linkUrl, recipient.orgName);
+      return;
+    }
+
+    if (actionKind === 'DISPATCH_WEBHOOK') {
+      await this.dispatchRuleWebhook(rule.id, payload, config);
+      return;
+    }
+
+    const recipient = await this.getRecipientFromConfig(config, payload);
+    if (!recipient?.userId) return;
+
+    await this.notifications.create({
+      orgId: payload.orgId,
+      userId: recipient.userId,
+      type: notificationType,
+      title,
+      body,
+      linkUrl,
+      entityId: payload.entityId,
+      entityType: payload.entityType.toLowerCase(),
+    });
   }
 
   async listRules(orgId: string) {

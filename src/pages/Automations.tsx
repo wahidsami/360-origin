@@ -22,6 +22,14 @@ const TRIGGER_EVENTS = [
   { value: 'ASSIGNED', label: 'Assigned' },
 ] as const;
 
+const ACTION_KINDS = [
+  { value: 'CREATE_NOTIFICATION', label: 'Create notification' },
+  { value: 'SEND_EMAIL', label: 'Send email' },
+  { value: 'DISPATCH_WEBHOOK', label: 'Dispatch webhook' },
+  { value: 'UPDATE_STATUS', label: 'Update status' },
+  { value: 'ASSIGN_USER', label: 'Assign user' },
+] as const;
+
 const getDefaultUserIdField = (entity: string) => {
   if (entity === 'FINDING') return 'assignedToId';
   if (entity === 'INVOICE') return 'requestedById';
@@ -32,6 +40,11 @@ const getDefaultLinkTemplate = (entity: string) => {
   if (entity === 'FINDING') return '/app/projects/{{projectId}}?tab=findings';
   if (entity === 'INVOICE') return '/app/projects/{{projectId}}?tab=financials';
   return '/app/projects/{{projectId}}?tab=tasks';
+};
+
+const getDefaultActionKind = (entity: string) => {
+  if (entity === 'INVOICE') return 'SEND_EMAIL';
+  return 'CREATE_NOTIFICATION';
 };
 
 export interface AutomationRuleType {
@@ -58,10 +71,16 @@ const Automations: React.FC = () => {
     name: '',
     triggerEntity: 'TASK',
     triggerEvent: 'ASSIGNED',
+    actionKind: getDefaultActionKind('TASK'),
     titleTemplate: '{{title}}',
     bodyTemplate: '',
     userIdField: getDefaultUserIdField('TASK'),
     linkUrlTemplate: getDefaultLinkTemplate('TASK'),
+    recipientEmail: '',
+    webhookUrl: '',
+    webhookSecret: '',
+    eventName: '',
+    targetStatus: '',
     isActive: true,
     conditions: [] as { field: string; value: string }[],
   });
@@ -89,10 +108,16 @@ const Automations: React.FC = () => {
       name: '',
       triggerEntity: 'TASK',
       triggerEvent: 'ASSIGNED',
+      actionKind: getDefaultActionKind('TASK'),
       titleTemplate: '{{title}}',
       bodyTemplate: '',
       userIdField: getDefaultUserIdField('TASK'),
       linkUrlTemplate: getDefaultLinkTemplate('TASK'),
+      recipientEmail: '',
+      webhookUrl: '',
+      webhookSecret: '',
+      eventName: '',
+      targetStatus: '',
       isActive: true,
       conditions: [],
     });
@@ -104,14 +129,21 @@ const Automations: React.FC = () => {
     const config = (rule.actionConfig || {}) as Record<string, any>;
     const cond = rule.triggerConditions as Record<string, any> | null;
     const conditions = cond ? Object.entries(cond).map(([field, value]) => ({ field, value: String(value) })) : [];
+    const actionKind = String(config.actionKind || 'CREATE_NOTIFICATION');
     setForm({
       name: rule.name,
       triggerEntity: rule.triggerEntity,
       triggerEvent: rule.triggerEvent,
+      actionKind,
       titleTemplate: config.titleTemplate ?? '{{title}}',
       bodyTemplate: config.bodyTemplate ?? '',
       userIdField: config.userIdField ?? getDefaultUserIdField(rule.triggerEntity),
       linkUrlTemplate: config.linkUrlTemplate ?? getDefaultLinkTemplate(rule.triggerEntity),
+      recipientEmail: config.recipientEmail ?? '',
+      webhookUrl: config.webhookUrl ?? '',
+      webhookSecret: config.webhookSecret ?? '',
+      eventName: config.eventName ?? '',
+      targetStatus: config.targetStatus ?? '',
       isActive: rule.isActive,
       conditions,
     });
@@ -127,10 +159,16 @@ const Automations: React.FC = () => {
       ? form.conditions.reduce((acc, c) => ({ ...acc, [c.field]: c.value }), {} as Record<string, string>)
       : undefined;
     const actionConfig = {
+      actionKind: form.actionKind,
       titleTemplate: form.titleTemplate,
       bodyTemplate: form.bodyTemplate || undefined,
       userIdField: form.userIdField,
       linkUrlTemplate: form.linkUrlTemplate || undefined,
+      recipientEmail: form.recipientEmail || undefined,
+      webhookUrl: form.webhookUrl || undefined,
+      webhookSecret: form.webhookSecret || undefined,
+      eventName: form.eventName || undefined,
+      targetStatus: form.targetStatus || undefined,
     };
     try {
       if (editingRule) {
@@ -225,6 +263,9 @@ const Automations: React.FC = () => {
                   {!rule.isActive && (
                     <span className="text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-400">Disabled</span>
                   )}
+                  <span className="text-xs px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300">
+                    {(rule.actionConfig as Record<string, any>)?.actionKind || 'CREATE_NOTIFICATION'}
+                  </span>
                 </div>
                 <p className="text-sm text-slate-400 mt-0.5">
                   When <strong>{rule.triggerEntity}</strong> is <strong>{rule.triggerEvent.toLowerCase().replace(/_/g, ' ')}</strong>
@@ -302,7 +343,17 @@ const Automations: React.FC = () => {
             </div>
           </div>
           <div>
-            <Label>Notification title template (use {'{{title}}'}, {'{{projectId}}'})</Label>
+            <Label>Action kind</Label>
+            <select
+              value={form.actionKind}
+              onChange={(e) => setForm(f => ({ ...f, actionKind: e.target.value }))}
+              className="mt-1 w-full rounded-lg bg-slate-800 border border-slate-600 text-slate-200 px-3 py-2"
+            >
+              {ACTION_KINDS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <Label>{form.actionKind === 'SEND_EMAIL' ? 'Email title template' : 'Notification title template'} (use {'{{title}}'}, {'{{projectId}}'})</Label>
             <Input
               value={form.titleTemplate}
               onChange={(e) => setForm(f => ({ ...f, titleTemplate: e.target.value }))}
@@ -311,7 +362,7 @@ const Automations: React.FC = () => {
             />
           </div>
           <div>
-            <Label>Notification body template (optional)</Label>
+            <Label>{form.actionKind === 'SEND_EMAIL' ? 'Email body template' : 'Notification body template'} (optional)</Label>
             <Input
               value={form.bodyTemplate}
               onChange={(e) => setForm(f => ({ ...f, bodyTemplate: e.target.value }))}
@@ -319,6 +370,84 @@ const Automations: React.FC = () => {
               className="mt-1"
             />
           </div>
+          {(form.actionKind === 'CREATE_NOTIFICATION' || form.actionKind === 'SEND_EMAIL' || form.actionKind === 'ASSIGN_USER') && (
+            <div>
+              <Label>User ID field (assigneeId for Task, assignedToId for Finding)</Label>
+              <Input
+                value={form.userIdField}
+                onChange={(e) => setForm(f => ({ ...f, userIdField: e.target.value }))}
+                className="mt-1"
+              />
+            </div>
+          )}
+          {form.actionKind === 'CREATE_NOTIFICATION' && (
+            <div>
+              <Label>Link URL template (optional)</Label>
+              <Input
+                value={form.linkUrlTemplate}
+                onChange={(e) => setForm(f => ({ ...f, linkUrlTemplate: e.target.value }))}
+                placeholder="/app/projects/{{projectId}}?tab=tasks"
+                className="mt-1"
+              />
+            </div>
+          )}
+          {form.actionKind === 'SEND_EMAIL' && (
+            <div>
+              <Label>Recipient email override (optional)</Label>
+              <Input
+                value={form.recipientEmail}
+                onChange={(e) => setForm(f => ({ ...f, recipientEmail: e.target.value }))}
+                placeholder="name@example.com"
+                className="mt-1"
+              />
+            </div>
+          )}
+          {form.actionKind === 'DISPATCH_WEBHOOK' && (
+            <>
+              <div>
+                <Label>Webhook URL</Label>
+                <Input
+                  value={form.webhookUrl}
+                  onChange={(e) => setForm(f => ({ ...f, webhookUrl: e.target.value }))}
+                  placeholder="https://example.com/webhook"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Webhook secret (optional)</Label>
+                <Input
+                  value={form.webhookSecret}
+                  onChange={(e) => setForm(f => ({ ...f, webhookSecret: e.target.value }))}
+                  placeholder="shared secret for signature verification"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Event name</Label>
+                <Input
+                  value={form.eventName}
+                  onChange={(e) => setForm(f => ({ ...f, eventName: e.target.value }))}
+                  placeholder="automation.task.assigned"
+                  className="mt-1"
+                />
+              </div>
+            </>
+          )}
+          {(form.actionKind === 'UPDATE_STATUS' || form.actionKind === 'ASSIGN_USER') && (
+            <div>
+              <Label>{form.actionKind === 'UPDATE_STATUS' ? 'Target status' : 'Target user ID override (optional)'}</Label>
+              <Input
+                value={form.actionKind === 'UPDATE_STATUS' ? form.targetStatus : form.userIdField}
+                onChange={(e) => setForm(f => (
+                  form.actionKind === 'UPDATE_STATUS'
+                    ? { ...f, targetStatus: e.target.value }
+                    : { ...f, userIdField: e.target.value }
+                ))}
+                placeholder={form.actionKind === 'UPDATE_STATUS' ? 'DONE' : 'User ID'}
+                className="mt-1"
+              />
+            </div>
+          )}
           <div>
             <Label>Conditions (optional) — rule runs only when entity matches</Label>
             <div className="mt-1 space-y-2">
@@ -349,23 +478,6 @@ const Automations: React.FC = () => {
                 + Add condition
               </Button>
             </div>
-          </div>
-          <div>
-            <Label>User ID field (assigneeId for Task, assignedToId for Finding, requestedById for Invoice)</Label>
-            <Input
-              value={form.userIdField}
-              onChange={(e) => setForm(f => ({ ...f, userIdField: e.target.value }))}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label>Link URL template (optional)</Label>
-            <Input
-              value={form.linkUrlTemplate}
-              onChange={(e) => setForm(f => ({ ...f, linkUrlTemplate: e.target.value }))}
-              placeholder="/app/projects/{{projectId}}?tab=tasks"
-              className="mt-1"
-            />
           </div>
           <div className="flex items-center gap-2">
             <input

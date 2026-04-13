@@ -5,7 +5,7 @@ This tracker reflects the current codebase audit, not the older baseline reports
 ## Current Status
 
 - Missing: login UI SSO entry points, outgoing webhook delivery, email notifications for app events, client latest-updates feed, milestone coverage in calendar, and a real environments backend.
-- Partially implemented: notification preferences enforcement, notifications deep-linking, automation scope, reporting scope, and roles admin editing.
+- Partially implemented: notification preferences enforcement, notifications deep-linking, reporting scope, and roles admin editing.
 
 ## Phase 0 - User-Facing Gaps
 
@@ -25,7 +25,7 @@ This tracker reflects the current codebase audit, not the older baseline reports
 
 ## Phase 2 - Workflow Engines
 
-- [ ] Expand automation beyond notification creation into assign, update, email, and webhook actions.
+- [x] Expand automation beyond notification creation into assign, update, email, and webhook actions.
 - [ ] Wire approvals more fully into reports, invoices, and contracts.
 - [ ] Apply SLA policies from real entity lifecycle events.
 - [ ] Make recurring tasks and finance events generate the right notifications and audit trail entries.
