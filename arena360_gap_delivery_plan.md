@@ -12,7 +12,7 @@ This tracker reflects the current codebase audit, not the older baseline reports
 - [x] Add SSO launch buttons to the login screen for org-aware Google and SAML sign-in.
 - [x] Make notifications open their linked project/client/finding targets directly from the drawer.
 - [x] Replace the placeholder Testing / Environments tab with a real environment list UI.
-- [ ] Decide reporting scope explicitly: keep the accessibility-first flow or restore the broader report suite.
+- [x] Decide reporting scope explicitly: keep the accessibility-first flow and standardize on the report builder / accessibility audit workflow.
 - [ ] Decide whether Roles Admin should remain read-only or become editable in this release.
 
 ## Phase 1 - Delivery Plumbing
@@ -21,7 +21,7 @@ This tracker reflects the current codebase audit, not the older baseline reports
 - [x] Add email delivery for task, finding, invoice, approval, and SLA events.
 - [x] Implement outbound webhook delivery for saved integrations.
 - [x] Replace placeholder client latest-updates counts with a real count and KPI.
-- [ ] Add milestone events to the calendar view.
+- [x] Add milestone events to the calendar view.
 
 ## Phase 2 - Workflow Engines
 
