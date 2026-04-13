@@ -23,6 +23,8 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [step2fa, setStep2fa] = useState<string | null>(null);
   const [code2fa, setCode2fa] = useState('');
+  const loginLogoSrc = publicOrg?.logo || '/arenalogo.png';
+  const loginLogoAlt = `${publicOrg?.name ?? 'Arena 360'} logo`;
 
   useEffect(() => {
     const err = searchParams.get('error');
@@ -101,7 +103,7 @@ const Login: React.FC = () => {
 
           {/* Top Logo — h-12 (48px) */}
           <div className="flex items-center gap-3 animate-fade-in-up mb-8 p-4">
-            <img src="/whitedgalogo.svg" className="logo" alt="Digital Government Authority logo" />
+            <img src={loginLogoSrc} className="h-14 w-auto object-contain" alt={loginLogoAlt} />
             <span className="text-xl font-bold text-white">{publicOrg?.name ?? 'Arena 360'}</span>
           </div>
 

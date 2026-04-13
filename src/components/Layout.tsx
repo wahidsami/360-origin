@@ -222,6 +222,9 @@ export const Layout: React.FC = () => {
     adminManagementItems.push({ to: '/app/admin/roles', icon: ShieldCheck, label: 'Roles' });
   }
 
+  const dashboardLogoSrc = orgBranding?.logo || '/arenalogo.png';
+  const dashboardLogoAlt = 'Arena 360 logo';
+
   return (
     <div className={`flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 overflow-hidden font-sans selection:bg-cyan-500/30 transition-colors duration-500 ${i18n.language === 'ar' ? 'font-brand-ar' : 'font-brand-en'}`}>
       {/* Background Ambience - Modified for light theme */}
@@ -253,26 +256,13 @@ export const Layout: React.FC = () => {
         <div className={`p-4 flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-3'} border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 relative h-20`}>
           {!isCollapsed && (
             <div className="p-4 flex items-center justify-center">
-              {orgBranding?.logo ? (
-                <img src={orgBranding.logo} alt="Logo" className="logo max-w-[160px] dark:invert-0" />
-              ) : (
-                <>
-                  <img
-                    src="/dgalogo.svg"
-                    alt="Digital Government Authority logo"
-                    className="logo max-w-[160px] dark:hidden"
-                  />
-                  <img
-                    src="/whitedgalogo.svg"
-                    alt="Digital Government Authority logo"
-                    className="logo max-w-[160px] hidden dark:block"
-                  />
-                </>
-              )}
+              <img src={dashboardLogoSrc} alt={dashboardLogoAlt} className="max-h-12 w-auto object-contain" />
             </div>
           )}
           {isCollapsed && (
-            <div className="h-10 w-10 bg-gradient-to-br from-cyan-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-cyan-500/20">360</div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-800">
+              <img src={dashboardLogoSrc} alt={dashboardLogoAlt} className="max-h-8 w-auto object-contain" />
+            </div>
           )}
           <button onClick={() => setSidebarOpen(false)} className={`ml-auto lg:hidden text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors ${isCollapsed ? 'hidden' : ''}`}>
             <X />
