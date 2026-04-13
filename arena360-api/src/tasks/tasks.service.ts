@@ -92,6 +92,14 @@ export class TasksService {
                 projectId,
             },
         });
+        if (project.orgId) {
+            const isActive = task.status !== 'DONE';
+            if (isActive) {
+                this.sla.startOrUpdateTracker(project.orgId, 'TASK', task.id, { clientId: project.clientId }).catch(() => { });
+            } else {
+                this.sla.markMet(project.orgId, 'TASK', task.id).catch(() => { });
+            }
+        }
         if (task.assigneeId && project.orgId) {
             this.notifications.create({
                 orgId: project.orgId,
@@ -104,7 +112,6 @@ export class TasksService {
                 entityType: 'task',
             }).catch(() => { });
         }
-        this.sla.startOrUpdateTracker(project.orgId, 'TASK', task.id, { clientId: project.clientId }).catch(() => { });
         const entity = { id: task.id, projectId, title: task.title, status: task.status, assigneeId: task.assigneeId };
         this.automation.evaluateRules({
             orgId: project.orgId,
@@ -199,7 +206,7 @@ export class TasksService {
                 assignee: { select: { id: true, name: true } }
             }
         });
-        const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { orgId: true, name: true } });
+        const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { orgId: true, name: true, clientId: true } });
         if (project?.orgId && updateData.assigneeId && updateData.assigneeId !== task.assigneeId) {
             this.notifications.create({
                 orgId: project.orgId,
@@ -240,6 +247,14 @@ export class TasksService {
                 }).catch(() => { });
             }
 
+            if (updateData.status != null && updateData.status !== task.status) {
+                if (updateData.status === 'DONE') {
+                    this.sla.markMet(project.orgId, 'TASK', taskId).catch(() => { });
+                } else {
+                    this.sla.startOrUpdateTracker(project.orgId, 'TASK', taskId, { clientId: project.clientId }).catch(() => { });
+                }
+            }
+
             // Always trigger UPDATED event
             this.automation.evaluateRules({
                 orgId: project.orgId,
@@ -267,6 +282,14 @@ export class TasksService {
             }
         });
         if (!task) throw new NotFoundException('Task not found');
+
+        const project = await this.prisma.project.findUnique({
+            where: { id: task.projectId },
+            select: { orgId: true },
+        });
+        if (project?.orgId) {
+            this.sla.markMet(project.orgId, 'TASK', taskId).catch(() => { });
+        }
 
         return this.prisma.task.update({
             where: { id: taskId },

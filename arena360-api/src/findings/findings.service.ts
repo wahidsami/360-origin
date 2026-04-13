@@ -230,6 +230,9 @@ export class FindingsService {
             }
         });
         this.sla.startOrUpdateTracker(project.orgId, 'FINDING', finding.id, { clientId: project.clientId }).catch(() => { });
+        if (finding.status === 'CLOSED' || finding.status === 'DISMISSED') {
+            this.sla.markMet(project.orgId, 'FINDING', finding.id).catch(() => { });
+        }
         const entity = { id: finding.id, projectId, title: finding.title, status: finding.status, assignedToId: finding.assignedToId };
         this.automation.evaluateRules({
             orgId: project.orgId,
@@ -319,7 +322,7 @@ export class FindingsService {
                     evidence: true
                 }
             });
-            const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { name: true } });
+            const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { name: true, clientId: true } });
             const entity = {
                 ...updated,
                 projectId,
@@ -345,6 +348,14 @@ export class FindingsService {
                     entity,
                     previousEntity: { assignedToId: finding.assignedToId, status: finding.status },
                 }).catch(() => { });
+            }
+
+            if (dto.status !== undefined && dto.status !== finding.status) {
+                if (dto.status === 'CLOSED' || dto.status === 'DISMISSED') {
+                    this.sla.markMet(finding.orgId, 'FINDING', findingId).catch(() => { });
+                } else {
+                    this.sla.startOrUpdateTracker(finding.orgId, 'FINDING', findingId, { clientId: project?.clientId }).catch(() => { });
+                }
             }
 
             // Always trigger UPDATED event
@@ -374,7 +385,7 @@ export class FindingsService {
                 evidence: true
             }
         });
-        const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { name: true } });
+        const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { name: true, clientId: true } });
         const entity = {
             ...updated,
             projectId,
@@ -400,6 +411,14 @@ export class FindingsService {
                 entity,
                 previousEntity: { assignedToId: finding.assignedToId, status: finding.status },
             }).catch(() => { });
+        }
+
+        if (dto.status !== undefined && dto.status !== finding.status) {
+            if (dto.status === 'CLOSED' || dto.status === 'DISMISSED') {
+                this.sla.markMet(finding.orgId, 'FINDING', findingId).catch(() => { });
+            } else {
+                this.sla.startOrUpdateTracker(finding.orgId, 'FINDING', findingId, { clientId: project?.clientId }).catch(() => { });
+            }
         }
 
         // Always trigger UPDATED event
@@ -486,6 +505,7 @@ export class FindingsService {
             where: { id: findingId },
             data: { deletedAt: new Date() }
         });
+        this.sla.markMet(finding.orgId, 'FINDING', findingId).catch(() => { });
         return { success: true };
     }
 }

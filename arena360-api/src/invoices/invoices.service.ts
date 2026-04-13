@@ -6,6 +6,7 @@ import Stripe from 'stripe';
 import { ConfigService } from '@nestjs/config';
 import { AutomationService } from '../automation/automation.service';
 import { AutomationTriggerEntity, AutomationTriggerEvent } from '@prisma/client';
+import { SlaService } from '../sla/sla.service';
 
 @Injectable()
 export class InvoicesService {
@@ -13,6 +14,7 @@ export class InvoicesService {
         private prisma: PrismaService,
         private config: ConfigService,
         private automation: AutomationService,
+        private sla: SlaService,
     ) { }
 
     async findAll(projectId: string, user: UserWithRoles) {
@@ -120,6 +122,12 @@ export class InvoicesService {
                 }
             }
         });
+
+        if (invoice.status === 'ISSUED' || invoice.status === 'OVERDUE') {
+            this.sla.startOrUpdateTracker(invoice.orgId, 'INVOICE', invoice.id).catch(() => { });
+        } else if (invoice.status === 'PAID') {
+            this.sla.markMet(invoice.orgId, 'INVOICE', invoice.id).catch(() => { });
+        }
 
         // Trigger automation
         this.automation.evaluateRules({
@@ -251,6 +259,14 @@ export class InvoicesService {
             }).catch(() => { });
         }
 
+        if (dto.status && dto.status !== invoice.status) {
+            if (updated.status === 'ISSUED' || updated.status === 'OVERDUE') {
+                this.sla.startOrUpdateTracker(user.orgId, 'INVOICE', invoiceId).catch(() => { });
+            } else {
+                this.sla.markMet(user.orgId, 'INVOICE', invoiceId).catch(() => { });
+            }
+        }
+
         // Trigger automation updated
         this.automation.evaluateRules({
             orgId: user.orgId,
@@ -284,6 +300,7 @@ export class InvoicesService {
             throw new ForbiddenException('Only FINANCE, PM, OPS, or SUPER_ADMIN can delete invoices');
         }
 
+        this.sla.markMet(user.orgId, 'INVOICE', invoiceId).catch(() => { });
         await this.prisma.invoice.delete({
             where: { id: invoiceId }
         });
@@ -325,5 +342,6 @@ export class InvoicesService {
             where: { id: invoice.id },
             data: { status: 'PAID', paidAt: new Date() },
         });
+        this.sla.markMet(invoice.orgId, 'INVOICE', invoice.id).catch(() => { });
     }
 }
