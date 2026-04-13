@@ -4,7 +4,8 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 import {
   LayoutDashboard, Users, Briefcase, FileText, ShieldCheck,
-  Settings, Bell, Search, LogOut, Menu, X, ChevronRight, Globe, ClipboardList, Calendar, History
+  Settings, Bell, Search, LogOut, Menu, X, ChevronRight, Globe, ClipboardList, Calendar, History,
+  Sparkles, BookOpen, BarChart3, Workflow, Link2
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Role, isInternalRole } from '../types';
@@ -14,6 +15,7 @@ import { NotificationsDrawer } from './NotificationsDrawer';
 import { OnboardingWizard } from './OnboardingWizard';
 import { ChangelogModal } from './ChangelogModal';
 import { api } from '../services/api';
+import { useAI } from '../contexts/AIContext';
 
 const API_WS_URL = import.meta.env.VITE_API_URL || '';
 
@@ -74,6 +76,7 @@ const SidebarSectionLabel = ({ label, isCollapsed }: { label: string; isCollapse
 export const Layout: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
+  const { openAI } = useAI();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -194,12 +197,29 @@ export const Layout: React.FC = () => {
   }
 
   const knowledgeMenuItems: Array<{ to: string; icon: any; label: string }> = [];
+  if (user) {
+    knowledgeMenuItems.push({ to: '/app/wiki', icon: BookOpen, label: t('wiki') });
+  }
+  if (user && isInternalRole(user.role)) {
+    knowledgeMenuItems.push({ to: '/app/analytics', icon: BarChart3, label: t('analytics') });
+  }
 
   const adminToolItems: Array<{ to: string; icon: any; label: string }> = [];
+  if (user && [Role.SUPER_ADMIN, Role.OPS, Role.PM].includes(user.role)) {
+    adminToolItems.push({ to: '/app/automations', icon: Workflow, label: t('automations') });
+    adminToolItems.push({ to: '/app/integrations', icon: Link2, label: t('integrations') });
+  }
 
   const adminManagementItems: Array<{ to: string; icon: any; label: string }> = [];
   if (user?.role === Role.SUPER_ADMIN) {
-    adminManagementItems.push({ to: '/app/admin/users', icon: ShieldCheck, label: t('admin') });
+    adminManagementItems.push({ to: '/app/admin/report-templates', icon: FileText, label: 'Report Builder' });
+  }
+  if (user && [Role.SUPER_ADMIN, Role.OPS].includes(user.role)) {
+    adminManagementItems.push({ to: '/app/admin/workspace-templates', icon: Briefcase, label: 'Workspace Builder' });
+  }
+  if (user?.role === Role.SUPER_ADMIN) {
+    adminManagementItems.push({ to: '/app/admin/users', icon: Users, label: 'Users' });
+    adminManagementItems.push({ to: '/app/admin/roles', icon: ShieldCheck, label: 'Roles' });
   }
 
   return (
@@ -346,11 +366,9 @@ export const Layout: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
-
-
-            {/* <button type="button" onClick={() => openAI()} className="p-2 text-slate-400 dark:text-slate-500 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-slate-800 rounded-full transition-all group" title={t('ai_assistant')}>
+            <button type="button" onClick={() => openAI()} className="p-2 text-slate-400 dark:text-slate-500 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-slate-800 rounded-full transition-all group" title={t('ai_assistant')}>
               <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            </button> */}
+            </button>
             <button onClick={toggleLang} className="p-2 text-slate-400 dark:text-slate-500 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-slate-800 rounded-full transition-all">
               <span className="font-bold text-xs flex items-center gap-2">
                 <Globe className="w-4 h-4" />

@@ -160,7 +160,7 @@ export const PROJECT_TAB_DEFINITIONS: ProjectTabDefinition[] = [
     templateConfigurable: true,
     supportsClientWorkspace: true,
     audienceType: 'mixed',
-    defaultClientState: 'hidden',
+    defaultClientState: 'visible_read_only',
     notes: 'Primary tab. Safe to hide without affecting other capabilities.',
   },
   {
@@ -274,7 +274,7 @@ export const PROJECT_TAB_DEFINITIONS: ProjectTabDefinition[] = [
     templateConfigurable: true,
     supportsClientWorkspace: true,
     audienceType: 'mixed',
-    defaultClientState: 'hidden',
+    defaultClientState: 'visible_read_only',
     hidesOverviewSectionsWhenHidden: ['team_capacity'],
     notes: 'Primary tab. Can be exposed to clients if product wants member transparency later.',
   },
@@ -288,7 +288,7 @@ export const PROJECT_TAB_DEFINITIONS: ProjectTabDefinition[] = [
     templateConfigurable: true,
     supportsClientWorkspace: true,
     audienceType: 'mixed',
-    defaultClientState: 'hidden',
+    defaultClientState: 'visible_read_only',
     hidesOverviewSectionsWhenHidden: ['financial_summary'],
     notes: 'Primary tab. Hiding it must also remove financial summaries across the workspace.',
   },
@@ -302,7 +302,7 @@ export const PROJECT_TAB_DEFINITIONS: ProjectTabDefinition[] = [
     templateConfigurable: true,
     supportsClientWorkspace: true,
     audienceType: 'mixed',
-    defaultClientState: 'hidden',
+    defaultClientState: 'visible_read_only',
     notes: 'Primary tab. Commonly hidden for client workspaces, but now modeled as configurable.',
   },
   {
@@ -430,9 +430,16 @@ export function buildDefaultProjectWorkspaceConfigDraft(assignedClientId?: strin
   const defaultClientTabStates: Partial<Record<ProjectTabId, WorkspaceTabState>> = {
     overview: 'visible_read_only',
     discussions: 'visible_interactive',
+    tasks: 'visible_read_only',
+    milestones: 'visible_read_only',
     updates: 'visible_read_only',
+    findings: 'visible_read_only',
     reports: 'visible_read_only',
     files: 'visible_read_only',
+    team: 'visible_read_only',
+    financials: 'visible_read_only',
+    testing: 'visible_read_only',
+    activity: 'visible_read_only',
   };
 
   return {

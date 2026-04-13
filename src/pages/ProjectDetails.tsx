@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Edit, Sparkles } from 'lucide-react';
 import { Project, Client, Milestone, ProjectUpdate, EnvironmentAccess, Discussion, DiscussionReply, Permission, ActivityLog, FileAsset, ProjectMember, Role, Finding, Report, Task, isInternalRole, ProjectReadiness, ReadinessAction } from '../types';
 import { api } from '../services/api';
 import { Button, Badge, KpiCard } from '../components/ui/UIComponents';
 import { PermissionGate } from '../components/PermissionGate';
-import { MilestonesTab, UpdatesTab, EnvironmentsTab, DiscussionsTab, OverviewTab, FilesTab, TeamTab, FindingsTab, ReportsTab, TimeTab, TimelineTab, SprintsTab, ActivityTab } from '../components/project/ProjectTabs';
+import { MilestonesTab, UpdatesTab, EnvironmentsTab, DiscussionsTab, OverviewTab, FilesTab, TeamTab, FindingsTab, ReportsTab, TimeTab, TimelineTab, SprintsTab, ActivityTab, FinancialsTab } from '../components/project/ProjectTabs';
 import { TasksTab } from '../components/project/TasksTab';
 import { RecurringTasksTab } from '../components/project/RecurringTasksTab';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,6 +22,7 @@ export const ProjectDetails: React.FC = () => {
   const { t } = useTranslation();
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, can } = useAuth();
   const { openAI, setContext } = useAI();
   const [activeTab, setActiveTab] = useState('overview');
@@ -40,6 +41,7 @@ export const ProjectDetails: React.FC = () => {
   const [findings, setFindings] = useState<Finding[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [financialsData, setFinancialsData] = useState<{ contract?: any; invoices: any[] }>({ contract: undefined, invoices: [] });
   const [readiness, setReadiness] = useState<ProjectReadiness | null>(null);
   const [metrics, setMetrics] = useState<any>(null);
   const [isOverviewMetaLoading, setIsOverviewMetaLoading] = useState(false);
@@ -66,32 +68,43 @@ export const ProjectDetails: React.FC = () => {
       : [];
 
     const normalizedWorkspaceTabs = (() => {
-      if (user.role === Role.FINANCE || !roleVisibleTabIds.includes('discussions')) {
-        return workspaceTabs;
+      const restoredClientTabs = new Set<ProjectTabId>(['discussions', 'updates', 'findings', 'team', 'financials', 'testing', 'activity']);
+      const nextTabs = [...workspaceTabs];
+
+      const ensureTabState = (tabId: ProjectTabId, state: 'visible_read_only' | 'visible_interactive') => {
+        if (!roleVisibleTabIds.includes(tabId)) return;
+
+        const orderIndex = PROJECT_TAB_DEFINITIONS.find((definition) => definition.id === tabId)?.order ?? nextTabs.length + 1;
+        const existingIndex = nextTabs.findIndex((tab) => tab.tabId === tabId);
+
+        if (existingIndex === -1) {
+          nextTabs.push({ tabId, state, orderIndex });
+          return;
+        }
+
+        if (nextTabs[existingIndex].state === 'hidden') {
+          nextTabs[existingIndex] = {
+            ...nextTabs[existingIndex],
+            state,
+          };
+        }
+      };
+
+      if (user.role !== Role.FINANCE) {
+        ensureTabState('discussions', 'visible_interactive');
       }
 
-      const discussionOrder = PROJECT_TAB_DEFINITIONS.find((definition) => definition.id === 'discussions')?.order ?? 2;
-      const hasDiscussionEntry = workspaceTabs.some((tab) => tab.tabId === 'discussions');
-
-      if (!hasDiscussionEntry) {
-        return [
-          ...workspaceTabs,
-          {
-            tabId: 'discussions' as ProjectTabId,
-            state: 'visible_interactive',
-            orderIndex: discussionOrder,
-          },
-        ];
+      if (!isInternalUser) {
+        restoredClientTabs.forEach((tabId) => {
+          if (tabId === 'discussions') {
+            ensureTabState(tabId, 'visible_interactive');
+          } else {
+            ensureTabState(tabId, 'visible_read_only');
+          }
+        });
       }
 
-      return workspaceTabs.map((tab) =>
-        tab.tabId === 'discussions'
-          ? {
-              ...tab,
-              state: 'visible_interactive',
-            }
-          : tab,
-      );
+      return nextTabs;
     })();
 
     const interactiveWorkspaceTabs = new Set(
@@ -147,6 +160,16 @@ export const ProjectDetails: React.FC = () => {
   const projectStatusLabel = project
     ? t(`status_${project.status}`, { defaultValue: t(project.status, { defaultValue: project.status.replace(/_/g, ' ') }) })
     : '';
+  const requestedTab = searchParams.get('tab');
+
+  const handleTabChange = React.useCallback((tabId: string) => {
+    setActiveTab(tabId);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set('tab', tabId);
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   // --- Safe Role-Based Default Tab Selection ---
   useEffect(() => {
@@ -160,15 +183,22 @@ export const ProjectDetails: React.FC = () => {
 
     // 2. Critical: Check if the user actually has visibility for this tab
     if (targetTab !== 'overview' && visibleTabs.some(t => t.id === targetTab)) {
-      setActiveTab(targetTab);
+      handleTabChange(targetTab);
     }
-  }, [project?.id, user?.role, visibleTabs]); // Only re-run if project or role changes
+  }, [handleTabChange, project?.id, user?.role, visibleTabs]); // Only re-run if project or role changes
+
+  useEffect(() => {
+    if (!requestedTab || visibleTabs.length === 0) return;
+    if (!visibleTabs.some((tab) => tab.id === requestedTab)) return;
+    if (requestedTab === activeTab) return;
+    setActiveTab(requestedTab);
+  }, [activeTab, requestedTab, visibleTabs]);
 
   useEffect(() => {
     if (visibleTabs.length === 0) return;
     if (visibleTabs.some((tab) => tab.id === activeTab)) return;
-    setActiveTab(visibleTabs[0]?.id || 'overview');
-  }, [activeTab, visibleTabs]);
+    handleTabChange(visibleTabs[0]?.id || 'overview');
+  }, [activeTab, handleTabChange, visibleTabs]);
 
   useEffect(() => {
     if (projectId) {
@@ -189,6 +219,7 @@ export const ProjectDetails: React.FC = () => {
       setFindings([]);
       setReports([]);
       setTasks([]);
+      setFinancialsData({ contract: undefined, invoices: [] });
       setReadiness(null);
       setMetrics(null);
       setHasLoadedOverviewMeta(false);
@@ -268,6 +299,16 @@ export const ProjectDetails: React.FC = () => {
     }, 300);
   };
 
+  const refreshFinancials = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const financials = await api.projects.getFinancials(projectId);
+      setFinancialsData(financials as { contract?: any; invoices: any[] });
+    } catch (error) {
+      console.error('Financials failed', error);
+    }
+  }, [projectId]);
+
   const loadData = useCallback(async (requestedProjectId: string | undefined = projectId, requestId: number = latestLoadRef.current) => {
     if (!requestedProjectId) {
       setIsLoadingProject(false);
@@ -297,7 +338,7 @@ export const ProjectDetails: React.FC = () => {
         setClient(c || null);
       });
 
-      const [m, u, e, th, act, fl, mem, fnd, rep, tsk] = await Promise.all([
+      const [m, u, e, th, act, fl, mem, fnd, rep, tsk, fin] = await Promise.all([
         api.projects.getMilestones(requestedProjectId).catch(e => { console.error('Milestones failed', e); return []; }),
         api.projects.getUpdates(requestedProjectId).catch(e => { console.error('Updates failed', e); return []; }),
         api.projects.getEnvironments(requestedProjectId).catch(e => { console.error('Environments failed', e); return []; }),
@@ -307,7 +348,8 @@ export const ProjectDetails: React.FC = () => {
         api.projects.getMembers(requestedProjectId).catch(e => { console.error('Members failed', e); return []; }),
         api.projects.getFindings(requestedProjectId).catch(e => { console.error('Findings failed', e); return []; }),
         api.projects.getReports(requestedProjectId).catch(e => { console.error('Reports failed', e); return []; }),
-        api.projects.getTasks(requestedProjectId).catch(e => { console.error('Tasks failed', e); return []; })
+        api.projects.getTasks(requestedProjectId).catch(e => { console.error('Tasks failed', e); return []; }),
+        api.projects.getFinancials(requestedProjectId).catch(e => { console.error('Financials failed', e); return { contract: undefined, invoices: [] }; })
       ]);
       if (requestId !== latestLoadRef.current) return;
 
@@ -322,6 +364,7 @@ export const ProjectDetails: React.FC = () => {
         setFindings(fnd);
         setReports(rep);
         setTasks(tsk);
+        setFinancialsData(fin as { contract?: any; invoices: any[] });
       });
     } catch (error) {
       if (requestId !== latestLoadRef.current) return;
@@ -538,7 +581,7 @@ export const ProjectDetails: React.FC = () => {
     if (action.type === 'navigate_tab' && action.target) {
       if (visibleTabs.some(t => t.id === action.target)) {
         console.log("Navigating to tab:", action.target);
-        setActiveTab(action.target);
+        handleTabChange(action.target);
       } else {
         console.warn("Target tab not visible or restricted:", action.target);
       }
@@ -583,11 +626,9 @@ export const ProjectDetails: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-3 items-center">
-          {/* AI Feature Hidden
           <Button variant="outline" size="sm" onClick={() => openAI({ projectId: project.id })} title="AI Assistant">
             <Sparkles className="w-4 h-4 mr-1" /> AI
           </Button>
-          */}
           <Badge variant={project.status === 'in_progress' ? 'info' : project.status === 'deployed' ? 'success' : 'neutral'}>
             {projectStatusLabel.toUpperCase()}
           </Badge>
@@ -619,11 +660,7 @@ export const ProjectDetails: React.FC = () => {
                     {groupTabs.map(tab => (
                       <button
                         key={tab.id}
-                        onClick={() => {
-                          startTransition(() => {
-                            setActiveTab(tab.id);
-                          });
-                        }}
+                        onClick={() => startTransition(() => handleTabChange(tab.id))}
                         className={`py-1.5 px-2.5 rounded-lg font-medium text-xs transition-all whitespace-nowrap ${activeTab === tab.id
                           ? 'bg-cyan-500/10 text-cyan-400'
                           : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
@@ -666,7 +703,7 @@ export const ProjectDetails: React.FC = () => {
                   milestones={milestones}
                   onNavigate={(tab) => {
                     if (visibleTabs.some(t => t.id === tab)) {
-                      setActiveTab(tab);
+                      handleTabChange(tab);
                     } else {
                       toast.error('You do not have permission to view this tab.');
                     }
@@ -727,6 +764,7 @@ export const ProjectDetails: React.FC = () => {
             {activeTab === 'team' && <TeamTab members={members} onUpdateRole={handleUpdateRole} onAdd={handleAddMember} onRemove={handleRemoveMember} />}
             {activeTab === 'findings' && <FindingsTab findings={findings} projectId={projectId!} onRefresh={handleRefreshFindings} />}
             {activeTab === 'reports' && <ReportsTab reports={reports} projectName={project?.name} onRefresh={loadData} />}
+            {activeTab === 'financials' && <FinancialsTab contract={financialsData.contract} invoices={financialsData.invoices} onRefresh={refreshFinancials} />}
             {activeTab === 'testing' && <EnvironmentsTab environments={environments} />}
             {activeTab === 'discussions' && <DiscussionsTab
               projectId={projectId!}

@@ -1,4 +1,4 @@
-import { LucideIcon, ClipboardList, Briefcase, FileText, AlertCircle, Plus, CheckSquare, Upload, MessageSquare } from 'lucide-react';
+import { LucideIcon, ClipboardList, Briefcase, FileText, AlertCircle, Plus, CheckSquare, Upload, MessageSquare, Users } from 'lucide-react';
 import { Role } from '../types';
 
 export interface ToolConfig {
@@ -17,9 +17,11 @@ export const TOOLS_REGISTRY: ToolConfig[] = [
   
   // PM/OPS Tools
   { id: 'create_project', titleKey: 'create_project', icon: Plus, path: '/app/projects/new', roles: [Role.PM, Role.OPS, Role.SUPER_ADMIN] },
-  { id: 'reports', titleKey: 'reports', icon: FileText, path: '/app/reports', roles: [Role.PM, Role.OPS, Role.SUPER_ADMIN, Role.CLIENT_MANAGER] },
+  { id: 'reports', titleKey: 'reports', icon: FileText, path: '/app/reports', roles: [Role.PM, Role.OPS, Role.SUPER_ADMIN, Role.CLIENT_MANAGER, Role.FINANCE] },
   { id: 'findings', titleKey: 'findings', icon: AlertCircle, path: '/app/findings', roles: [Role.PM, Role.OPS, Role.SUPER_ADMIN, Role.DEV] },
-  { id: 'approvals', titleKey: 'approvals', icon: CheckSquare, path: '/app/dashboard', roles: [Role.PM, Role.OPS, Role.SUPER_ADMIN] },
+  { id: 'approvals', titleKey: 'approvals', icon: CheckSquare, path: '/app/dashboard#pending-approvals', roles: [Role.PM, Role.OPS, Role.SUPER_ADMIN] },
+  { id: 'clients', titleKey: 'clients', icon: Users, path: '/app/clients', roles: [Role.FINANCE] },
+  { id: 'projects', titleKey: 'projects', icon: Briefcase, path: '/app/projects', roles: [Role.FINANCE] },
   // CLIENT Tools
   { id: 'my_projects', titleKey: 'my_projects', icon: Briefcase, path: '/app/projects', roles: [Role.CLIENT_OWNER, Role.CLIENT_MANAGER, Role.CLIENT_MEMBER] },
   { id: 'shared_files', titleKey: 'shared_files', icon: Upload, path: '/app/dashboard#shared-files', roles: [Role.CLIENT_OWNER, Role.CLIENT_MANAGER, Role.CLIENT_MEMBER] },

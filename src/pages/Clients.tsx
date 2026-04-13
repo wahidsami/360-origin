@@ -7,6 +7,7 @@ import { api } from '../services/api';
 import { GlassCard, Button, Badge, Input, Select } from '../components/ui/UIComponents';
 import { PermissionGate } from '../components/PermissionGate';
 import { useAppDialog } from '../contexts/DialogContext';
+import { formatCurrency } from '../utils/currency';
 
 export const ClientList: React.FC = () => {
   const { t } = useTranslation();
@@ -159,15 +160,16 @@ export const ClientList: React.FC = () => {
                 <th className="p-6 font-medium">{t('client_name')}</th>
                 <th className="p-6 font-medium">{t('status')}</th>
                 <th className="p-6 font-medium">{t('active_projects')}</th>
+                <th className="p-6 font-medium">{t('outstanding_balance')}</th>
                 <th className="p-6 font-medium">{t('last_activity')}</th>
                 <th className="p-6 font-medium text-right">{t('actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
               {loading ? (
-                <tr><td colSpan={5} className="p-8 text-center text-slate-500">{t('scanning_database')}</td></tr>
+                <tr><td colSpan={6} className="p-8 text-center text-slate-500">{t('scanning_database')}</td></tr>
               ) : filteredClients.length === 0 ? (
-                <tr><td colSpan={5} className="p-8 text-center text-slate-500">{t('no_entities_found')}</td></tr>
+                <tr><td colSpan={6} className="p-8 text-center text-slate-500">{t('no_entities_found')}</td></tr>
               ) : (
                 filteredClients.map((client) => (
                   <tr key={client.id} className="hover:bg-slate-800/30 transition-colors group cursor-pointer" onClick={() => navigate(`/app/clients/${client.id}`)}>
@@ -211,6 +213,9 @@ export const ClientList: React.FC = () => {
                     </td>
                     <td className="p-6">
                       <span className="font-mono text-cyan-400 font-bold">{getActiveProjectCount(client.id)}</span>
+                    </td>
+                    <td className="p-6 text-slate-300 text-sm font-medium">
+                      {formatCurrency(client.outstandingBalance || 0, client.billing?.currency || 'SAR')}
                     </td>
                     <td className="p-6 text-slate-400 text-sm">
                       {new Date(client.lastActivity).toLocaleDateString()}

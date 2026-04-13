@@ -33,6 +33,10 @@ const RolesAdmin = React.lazy(() => import('./pages/admin/RolesAdmin'));
 const ReportTemplatesAdmin = React.lazy(() => import('./pages/admin/ReportTemplatesAdmin'));
 const WorkspaceTemplatesAdmin = React.lazy(() => import('./pages/admin/WorkspaceTemplatesAdmin'));
 const Calendar = React.lazy(() => import('./pages/Calendar'));
+const Analytics = React.lazy(() => import('./pages/Analytics'));
+const Automations = React.lazy(() => import('./pages/Automations'));
+const Integrations = React.lazy(() => import('./pages/Integrations'));
+const Wiki = React.lazy(() => import('./pages/Wiki'));
 
 // Protected Route Wrapper
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -121,13 +125,13 @@ const App: React.FC = () => {
                 <Route path="roles" element={<RoleProtectedRoute allowedRoles={[Role.SUPER_ADMIN]}><RolesAdmin /></RoleProtectedRoute>} />
               </Route>
 
-              <Route path="automations" element={<Navigate to="/app/dashboard" replace />} />
+              <Route path="automations" element={<Automations />} />
 
-              <Route path="integrations" element={<Navigate to="/app/dashboard" replace />} />
+              <Route path="integrations" element={<Integrations />} />
 
-              <Route path="wiki" element={<Navigate to="/app/dashboard" replace />} />
+              <Route path="wiki" element={<Wiki />} />
 
-              <Route path="analytics" element={<Navigate to="/app/dashboard" replace />} />
+              <Route path="analytics" element={<Analytics />} />
 
               <Route path="settings" element={<Settings />} />
             </Route>

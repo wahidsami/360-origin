@@ -12,10 +12,9 @@ interface ToolsPanelProps {
 export const ToolsPanel: React.FC<ToolsPanelProps> = ({ role }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const hiddenToolIds = new Set(['approvals', 'invoices', 'receivables', 'shared_files']);
 
   const accessibleTools = TOOLS_REGISTRY.filter(
-    (tool) => tool.roles.includes(role) && !hiddenToolIds.has(tool.id),
+    (tool) => tool.roles.includes(role),
   );
 
   if (accessibleTools.length === 0) return null;

@@ -4,6 +4,7 @@ import { Role } from '../types';
 import { AdminDashboard } from './dashboard/AdminDashboard';
 import { DevDashboard } from './dashboard/DevDashboard';
 import { ClientDashboard } from './dashboard/ClientDashboard';
+import { FinanceDashboard } from './dashboard/FinanceDashboard';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -15,7 +16,7 @@ const Dashboard: React.FC = () => {
     case Role.QA:
       return <DevDashboard role={user.role} />;
     case Role.FINANCE:
-      return <AdminDashboard role={user.role} />;
+      return <FinanceDashboard role={user.role} />;
     case Role.CLIENT_OWNER:
     case Role.CLIENT_MANAGER:
     case Role.CLIENT_MEMBER:

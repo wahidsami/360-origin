@@ -33,8 +33,8 @@ const TAB_STATE_OPTIONS = [
   { value: 'visible_interactive', label: 'Interactive' },
 ] as const;
 
-const VISIBLE_PRIMARY_TEMPLATE_TAB_DEFINITIONS = PRIMARY_TEMPLATE_TAB_DEFINITIONS.filter((tab) => tab.id !== 'financials');
-const VISIBLE_SECONDARY_TEMPLATE_TAB_DEFINITIONS = SECONDARY_TEMPLATE_TAB_DEFINITIONS.filter((tab) => tab.id !== 'financials');
+const VISIBLE_PRIMARY_TEMPLATE_TAB_DEFINITIONS = PRIMARY_TEMPLATE_TAB_DEFINITIONS;
+const VISIBLE_SECONDARY_TEMPLATE_TAB_DEFINITIONS = SECONDARY_TEMPLATE_TAB_DEFINITIONS;
 
 const buildDefaultTemplateDefinition = () => {
   const draft = buildDefaultProjectWorkspaceConfigDraft();

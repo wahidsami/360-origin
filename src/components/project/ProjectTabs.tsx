@@ -28,6 +28,8 @@ import { TeamTab } from './TeamTab';
 export { TeamTab };
 import { FindingsTab } from './FindingsTab';
 export { FindingsTab };
+import { FinancialsTab } from './FinancialsTab';
+export { FinancialsTab };
 import { ReportsTab } from './ReportsTab';
 export { ReportsTab };
 import { TimeTab } from './TimeTab';

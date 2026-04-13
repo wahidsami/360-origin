@@ -2,27 +2,27 @@ import { Role, Permission } from '../types';
 
 export class PermissionsService {
     private static readonly ROLE_TABS: Record<string, string[]> = {
-        [Role.SUPER_ADMIN]: ['overview', 'discussions', 'tasks', 'milestones', 'updates',
-            'reports', 'team', 'files'],
+        [Role.SUPER_ADMIN]: ['overview', 'discussions', 'tasks', 'milestones', 'updates', 'findings',
+            'reports', 'team', 'files', 'timeline', 'sprints', 'time', 'recurring', 'financials', 'testing', 'activity'],
 
-        [Role.OPS]: ['overview', 'discussions', 'tasks', 'milestones', 'updates',
-            'reports', 'team', 'files'],
+        [Role.OPS]: ['overview', 'discussions', 'tasks', 'milestones', 'updates', 'findings',
+            'reports', 'team', 'files', 'timeline', 'sprints', 'time', 'recurring', 'financials', 'testing', 'activity'],
 
-        [Role.PM]: ['overview', 'discussions', 'tasks', 'milestones', 'updates',
-            'reports', 'team', 'files'],
+        [Role.PM]: ['overview', 'discussions', 'tasks', 'milestones', 'updates', 'findings',
+            'reports', 'team', 'files', 'timeline', 'sprints', 'time', 'recurring', 'financials', 'testing', 'activity'],
 
-        [Role.DEV]: ['overview', 'discussions', 'tasks', 'milestones', 'updates',
-            'reports', 'team', 'files'],
+        [Role.DEV]: ['overview', 'discussions', 'tasks', 'milestones', 'updates', 'findings',
+            'reports', 'team', 'files', 'timeline', 'sprints', 'time', 'recurring', 'testing', 'activity'],
 
-        [Role.QA]: ['overview', 'discussions', 'tasks', 'milestones', 'updates',
-            'reports', 'team', 'files'],
+        [Role.QA]: ['overview', 'discussions', 'tasks', 'milestones', 'updates', 'findings',
+            'reports', 'team', 'files', 'timeline', 'sprints', 'time', 'recurring', 'testing', 'activity'],
 
-        [Role.FINANCE]: ['overview', 'reports', 'files', 'activity'],
+        [Role.FINANCE]: ['overview', 'discussions', 'milestones', 'updates', 'reports', 'team', 'files', 'financials', 'activity'],
 
-        [Role.CLIENT_OWNER]: ['overview', 'discussions', 'tasks', 'milestones', 'updates', 'reports', 'files'],
-        [Role.CLIENT_MANAGER]: ['overview', 'discussions', 'tasks', 'milestones', 'updates', 'reports', 'files'],
-        [Role.CLIENT_MEMBER]: ['overview', 'discussions', 'tasks', 'milestones', 'updates', 'reports', 'files'],
-        [Role.VIEWER]: ['overview', 'discussions', 'tasks', 'milestones', 'updates', 'reports', 'files']
+        [Role.CLIENT_OWNER]: ['overview', 'discussions', 'tasks', 'milestones', 'updates', 'findings', 'reports', 'team', 'files', 'financials', 'testing', 'activity'],
+        [Role.CLIENT_MANAGER]: ['overview', 'discussions', 'tasks', 'milestones', 'updates', 'findings', 'reports', 'team', 'files', 'financials', 'testing', 'activity'],
+        [Role.CLIENT_MEMBER]: ['overview', 'discussions', 'tasks', 'milestones', 'updates', 'findings', 'reports', 'team', 'files', 'financials', 'testing', 'activity'],
+        [Role.VIEWER]: ['overview', 'discussions', 'tasks', 'milestones', 'updates', 'findings', 'reports', 'team', 'files', 'financials', 'testing', 'activity']
     };
 
     private static readonly DEFAULT_LANDING: Record<string, string> = {
@@ -41,11 +41,11 @@ export class PermissionsService {
     private static readonly READ_ONLY_TABS: Record<string, string[]> = {
         [Role.DEV]: ['overview', 'milestones', 'activity'],
         [Role.QA]: ['overview', 'milestones', 'activity'],
-        [Role.FINANCE]: ['overview', 'reports', 'files', 'activity'],
-        [Role.CLIENT_OWNER]: ['overview', 'milestones', 'files'],
-        [Role.CLIENT_MANAGER]: ['overview', 'milestones', 'files'],
-        [Role.CLIENT_MEMBER]: ['overview', 'milestones', 'files'],
-        [Role.VIEWER]: ['overview', 'milestones', 'files']
+        [Role.FINANCE]: ['overview', 'milestones', 'updates', 'reports', 'team', 'files', 'financials', 'activity'],
+        [Role.CLIENT_OWNER]: ['overview', 'tasks', 'milestones', 'updates', 'findings', 'reports', 'team', 'files', 'financials', 'testing', 'activity'],
+        [Role.CLIENT_MANAGER]: ['overview', 'tasks', 'milestones', 'updates', 'findings', 'reports', 'team', 'files', 'financials', 'testing', 'activity'],
+        [Role.CLIENT_MEMBER]: ['overview', 'tasks', 'milestones', 'updates', 'findings', 'reports', 'team', 'files', 'financials', 'testing', 'activity'],
+        [Role.VIEWER]: ['overview', 'tasks', 'milestones', 'updates', 'findings', 'reports', 'team', 'files', 'financials', 'testing', 'activity']
     };
 
     static getVisibleTabs(role: Role): string[] {
@@ -83,8 +83,8 @@ export class PermissionsService {
             canManageTeam: [Role.SUPER_ADMIN, Role.OPS, Role.PM].includes(role),
 
             // Financial Permissions
-            canViewFinancials: false,
-            canManageFinancials: false,
+            canViewFinancials: [Role.SUPER_ADMIN, Role.OPS, Role.PM, Role.FINANCE].includes(role),
+            canManageFinancials: [Role.SUPER_ADMIN, Role.OPS, Role.PM].includes(role),
 
             // Client Permissions
             canViewClients: [Role.SUPER_ADMIN, Role.OPS, Role.PM, Role.DEV, Role.FINANCE, Role.CLIENT_OWNER, Role.CLIENT_MANAGER].includes(role),

@@ -21,7 +21,7 @@ export const UsersAdmin: React.FC = () => {
   const { confirm } = useAppDialog();
   const isArabic = i18n.language === 'ar';
   const visiblePermissions = React.useMemo(
-    () => Object.values(Permission).filter((perm) => perm !== Permission.VIEW_FINANCIALS),
+    () => Object.values(Permission),
     [],
   );
   const copy = React.useMemo(

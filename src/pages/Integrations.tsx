@@ -367,9 +367,14 @@ const Integrations: React.FC = () => {
   const EVENT_OPTIONS = [
     'task.created',
     'task.updated',
+    'invoice.created',
+    'invoice.updated',
+    'invoice.overdue',
+    'invoice.paid',
     'finding.created',
     'finding.updated',
     'approval.requested',
+    'approval.reviewed',
   ];
 
   return (

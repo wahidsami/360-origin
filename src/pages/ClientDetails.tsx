@@ -12,6 +12,7 @@ import { CustomFieldsSection } from '../components/CustomFieldsSection';
 import { useAuth } from '../contexts/AuthContext';
 import { useAppDialog } from '../contexts/DialogContext';
 import { navigateBack } from '@/utils/navigation';
+import { formatCurrency } from '@/utils/currency';
 
 export const ClientDetails: React.FC = () => {
     const { t, i18n } = useTranslation();
@@ -245,6 +246,8 @@ export const ClientDetails: React.FC = () => {
 
     if (loading) return <div className="p-10 text-center text-slate-500">{copy.loadingClientData}</div>;
     if (!client) return <div className="p-10 text-center text-slate-500">{copy.clientNotFound}</div>;
+    const activeProjectsCount = projects.filter(p => p.status === 'in_progress').length;
+    const totalProjectBudget = projects.reduce((sum, project) => sum + (project.budget || 0), 0);
 
     const tabs = [
         { id: 'overview', label: t('overview') },
@@ -336,7 +339,10 @@ export const ClientDetails: React.FC = () => {
 
                         <div className="lg:col-span-2 space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <KpiCard label={copy.activeProjects} value={projects.filter(p => p.status === 'in-progress').length} trend={0} />
+                                <KpiCard label={copy.activeProjects} value={activeProjectsCount} trend={0} />
+                                <KpiCard label={t('outstanding_balance')} value={formatCurrency(client.outstandingBalance || 0, client.billing?.currency || 'SAR')} />
+                                <KpiCard label={t('revenue')} value={formatCurrency(client.revenueYTD || 0, client.billing?.currency || 'SAR')} />
+                                <KpiCard label={t('budget_total')} value={formatCurrency(totalProjectBudget, client.billing?.currency || 'SAR')} />
                             </div>
 
                             {!isClientPortalUser && (
@@ -559,6 +565,8 @@ export const ClientDetails: React.FC = () => {
                         <Label>{t('file_category')}</Label>
                         <Select value={fileData.category} onChange={(e) => setFileData({ ...fileData, category: e.target.value as any })}>
                             <option value="brief">{t('brief')}</option>
+                            <option value="contract">{t('contract')}</option>
+                            <option value="invoice">{t('invoice')}</option>
                             <option value="other">{t('other')}</option>
                         </Select>
                     </div>

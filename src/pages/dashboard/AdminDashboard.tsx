@@ -21,11 +21,11 @@ import { GlassCard, Badge, Button, Modal } from '@/components/ui/UIComponents';
 import { ToolsPanel } from '@/components/ToolsPanel';
 import { api } from '@/services/api';
 import { Role, Project, ProjectUpdate } from '@/types';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { formatCurrency } from '../../utils/currency';
 import toast from 'react-hot-toast';
 
-const DEFAULT_WIDGET_IDS = ['kpi-cards', 'client-compliance', 'latest-updates', 'projects-at-risk', 'tools-panel'] as const;
+const DEFAULT_WIDGET_IDS = ['kpi-cards', 'client-compliance', 'latest-updates', 'projects-at-risk', 'pending-approvals', 'tools-panel'] as const;
 const WIDGET_LABELS: Record<string, string> = {
   'kpi-cards': 'widget_kpi_cards',
   'tools-panel': 'widget_quick_actions',
@@ -106,6 +106,7 @@ export const AdminDashboard: React.FC<{ role: Role }> = ({ role }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.language?.startsWith('ar');
   const navigate = useNavigate();
+  const location = useLocation();
   const [stats, setStats] = useState<any>(null);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -284,6 +285,14 @@ export const AdminDashboard: React.FC<{ role: Role }> = ({ role }) => {
   const scrollToLatestUpdates = () => {
     document.getElementById('dashboard-latest-updates')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+
+  useEffect(() => {
+    if (location.hash !== '#pending-approvals') return;
+    const timer = window.setTimeout(() => {
+      document.getElementById('dashboard-pending-approvals')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [location.hash, stats?.pendingApprovals]);
 
   if (loading) {
     return <div className="p-10 text-center text-slate-500 font-bold uppercase tracking-widest animate-pulse">{t('initializing')}</div>;
@@ -898,7 +907,7 @@ export const AdminDashboard: React.FC<{ role: Role }> = ({ role }) => {
         )}
 
         {has('pending-approvals') && (
-          <GlassCard className="xl:col-span-3 overflow-hidden self-start" title={t('pending_approvals')}>
+          <GlassCard id="dashboard-pending-approvals" className="xl:col-span-3 overflow-hidden self-start" title={t('pending_approvals')}>
             <div className="space-y-4 rounded-3xl border border-slate-200/60 bg-slate-50/60 p-5 dark:border-slate-800/60 dark:bg-slate-950/25">
               <div className="flex items-start justify-between gap-3">
                 <div>

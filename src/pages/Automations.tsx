@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 const TRIGGER_ENTITIES = [
   { value: 'TASK', label: 'Task' },
   { value: 'FINDING', label: 'Finding' },
+  { value: 'INVOICE', label: 'Invoice' },
 ] as const;
 
 const TRIGGER_EVENTS = [
@@ -20,6 +21,18 @@ const TRIGGER_EVENTS = [
   { value: 'STATUS_CHANGED', label: 'Status changed' },
   { value: 'ASSIGNED', label: 'Assigned' },
 ] as const;
+
+const getDefaultUserIdField = (entity: string) => {
+  if (entity === 'FINDING') return 'assignedToId';
+  if (entity === 'INVOICE') return 'requestedById';
+  return 'assigneeId';
+};
+
+const getDefaultLinkTemplate = (entity: string) => {
+  if (entity === 'FINDING') return '/app/projects/{{projectId}}?tab=findings';
+  if (entity === 'INVOICE') return '/app/projects/{{projectId}}?tab=financials';
+  return '/app/projects/{{projectId}}?tab=tasks';
+};
 
 export interface AutomationRuleType {
   id: string;
@@ -47,8 +60,8 @@ const Automations: React.FC = () => {
     triggerEvent: 'ASSIGNED',
     titleTemplate: '{{title}}',
     bodyTemplate: '',
-    userIdField: 'assigneeId',
-    linkUrlTemplate: '/app/projects/{{projectId}}?tab=tasks',
+    userIdField: getDefaultUserIdField('TASK'),
+    linkUrlTemplate: getDefaultLinkTemplate('TASK'),
     isActive: true,
     conditions: [] as { field: string; value: string }[],
   });
@@ -78,8 +91,8 @@ const Automations: React.FC = () => {
       triggerEvent: 'ASSIGNED',
       titleTemplate: '{{title}}',
       bodyTemplate: '',
-      userIdField: 'assigneeId',
-      linkUrlTemplate: '/app/projects/{{projectId}}?tab=tasks',
+      userIdField: getDefaultUserIdField('TASK'),
+      linkUrlTemplate: getDefaultLinkTemplate('TASK'),
       isActive: true,
       conditions: [],
     });
@@ -97,8 +110,8 @@ const Automations: React.FC = () => {
       triggerEvent: rule.triggerEvent,
       titleTemplate: config.titleTemplate ?? '{{title}}',
       bodyTemplate: config.bodyTemplate ?? '',
-      userIdField: config.userIdField ?? (rule.triggerEntity === 'FINDING' ? 'assignedToId' : 'assigneeId'),
-      linkUrlTemplate: config.linkUrlTemplate ?? '',
+      userIdField: config.userIdField ?? getDefaultUserIdField(rule.triggerEntity),
+      linkUrlTemplate: config.linkUrlTemplate ?? getDefaultLinkTemplate(rule.triggerEntity),
       isActive: rule.isActive,
       conditions,
     });
@@ -263,7 +276,15 @@ const Automations: React.FC = () => {
               <Label>Trigger entity</Label>
               <select
                 value={form.triggerEntity}
-                onChange={(e) => setForm(f => ({ ...f, triggerEntity: e.target.value, userIdField: e.target.value === 'FINDING' ? 'assignedToId' : 'assigneeId' }))}
+                onChange={(e) => {
+                  const entity = e.target.value;
+                  setForm(f => ({
+                    ...f,
+                    triggerEntity: entity,
+                    userIdField: getDefaultUserIdField(entity),
+                    linkUrlTemplate: getDefaultLinkTemplate(entity),
+                  }));
+                }}
                 className="mt-1 w-full rounded-lg bg-slate-800 border border-slate-600 text-slate-200 px-3 py-2"
               >
                 {TRIGGER_ENTITIES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -330,7 +351,7 @@ const Automations: React.FC = () => {
             </div>
           </div>
           <div>
-            <Label>User ID field (assigneeId for Task, assignedToId for Finding)</Label>
+            <Label>User ID field (assigneeId for Task, assignedToId for Finding, requestedById for Invoice)</Label>
             <Input
               value={form.userIdField}
               onChange={(e) => setForm(f => ({ ...f, userIdField: e.target.value }))}
