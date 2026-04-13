@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Bell, Check, CheckCheck, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../services/api';
 import { Notification } from '../types';
@@ -12,6 +13,7 @@ interface NotificationsDrawerProps {
 
 export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({ open, onClose }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [list, setList] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -53,6 +55,28 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({ open, 
     }
   };
 
+  const openLinkedTarget = (linkUrl?: string | null) => {
+    if (!linkUrl) return;
+
+    try {
+      const target = new URL(linkUrl, window.location.origin);
+      if (target.origin === window.location.origin) {
+        navigate(`${target.pathname}${target.search}${target.hash}`);
+      } else {
+        window.open(target.toString(), '_blank', 'noopener,noreferrer');
+      }
+    } catch {
+      window.location.assign(linkUrl);
+    }
+  };
+
+  const handleOpenNotification = (notification: Notification) => {
+    if (!notification.readAt) {
+      void handleMarkRead(notification.id);
+    }
+    openLinkedTarget(notification.linkUrl);
+  };
+
   if (!open) return null;
 
   return (
@@ -90,15 +114,30 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({ open, 
                   key={n.id}
                   className={`p-3 rounded-lg border transition-colors ${n.readAt ? 'border-slate-800 bg-slate-800/30' : 'border-cyan-500/20 bg-cyan-500/5'}`}
                 >
-                  <div className="flex items-start justify-between gap-2">
+                  <div
+                    className={`flex items-start justify-between gap-2 ${n.linkUrl ? 'cursor-pointer hover:bg-white/5 rounded-md p-1 -m-1' : ''}`}
+                    role={n.linkUrl ? 'button' : undefined}
+                    tabIndex={n.linkUrl ? 0 : undefined}
+                    onClick={n.linkUrl ? () => handleOpenNotification(n) : undefined}
+                    onKeyDown={n.linkUrl ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleOpenNotification(n);
+                      }
+                    } : undefined}
+                  >
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-slate-200 truncate">{n.title}</p>
                       {n.body && <p className="text-sm text-slate-400 mt-0.5 line-clamp-2">{n.body}</p>}
                       <p className="text-xs text-slate-500 mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+                      {n.linkUrl && <p className="text-xs text-cyan-400 mt-2">Open linked item</p>}
                     </div>
                     {!n.readAt && (
                       <button
-                        onClick={() => handleMarkRead(n.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleMarkRead(n.id);
+                        }}
                         className="p-1.5 text-slate-400 hover:text-cyan-400 rounded"
                         title={t('mark_read')}
                       >

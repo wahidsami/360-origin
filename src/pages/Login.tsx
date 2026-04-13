@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ExternalLink } from 'lucide-react';
 import { api } from '../services/api';
 
 const Login: React.FC = () => {
@@ -25,6 +25,13 @@ const Login: React.FC = () => {
   const [code2fa, setCode2fa] = useState('');
   const loginLogoSrc = publicOrg?.logo || '/arenalogo.png';
   const loginLogoAlt = `${publicOrg?.name ?? 'Arena 360'} logo`;
+  const orgIdentifier = publicOrg?.slug || orgSlug.trim();
+
+  const buildSsoUrl = (provider: 'google' | 'saml') => {
+    if (!orgIdentifier) return '';
+    const params = new URLSearchParams({ org: orgIdentifier });
+    return `${api.getBaseUrl()}/auth/sso/${provider}?${params.toString()}`;
+  };
 
   useEffect(() => {
     const err = searchParams.get('error');
@@ -150,6 +157,36 @@ const Login: React.FC = () => {
               </form>
             ) : (
               <form onSubmit={handleSubmit}>
+                {publicOrg && (publicOrg.sso.google || publicOrg.sso.saml) && orgIdentifier && (
+                  <div className="mb-6 animate-fade-in-up-delay">
+                    <div className="space-y-3">
+                      {publicOrg.sso.google && (
+                        <a
+                          href={buildSsoUrl('google')}
+                          className="w-full h-12 px-4 rounded-xl border border-slate-700 bg-slate-900/70 text-white font-semibold flex items-center justify-center gap-2 hover:border-cyan-400/50 hover:bg-slate-900 transition-all duration-300"
+                        >
+                          Continue with Google Workspace
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      )}
+                      {publicOrg.sso.saml && (
+                        <a
+                          href={buildSsoUrl('saml')}
+                          className="w-full h-12 px-4 rounded-xl border border-slate-700 bg-slate-900/70 text-white font-semibold flex items-center justify-center gap-2 hover:border-cyan-400/50 hover:bg-slate-900 transition-all duration-300"
+                        >
+                          Continue with SAML SSO
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 my-6">
+                      <div className="h-px flex-1 bg-slate-800" />
+                      <span className="text-[11px] uppercase tracking-[0.3em] text-slate-500 font-semibold">or sign in with email</span>
+                      <div className="h-px flex-1 bg-slate-800" />
+                    </div>
+                  </div>
+                )}
+
                 {/* Email */}
                 <div className="mb-6 animate-fade-in-up-delay">
                   <label className="block text-sm font-semibold text-white uppercase tracking-wide mb-2 opacity-80">{t('email_address')}</label>

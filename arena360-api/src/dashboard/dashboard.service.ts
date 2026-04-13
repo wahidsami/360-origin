@@ -488,7 +488,7 @@ export class DashboardService {
             };
         }
 
-        const [upcomingMilestonesCount, sharedFilesCount, files, pendingApprovals] = await Promise.all([
+        const [upcomingMilestonesCount, sharedFilesCount, files, pendingApprovals, latestUpdatesCount] = await Promise.all([
             this.prisma.milestone.count({
                 where: {
                     projectId: { in: projectIds },
@@ -529,6 +529,15 @@ export class DashboardService {
                     },
                 },
             }),
+            this.prisma.projectUpdate.count({
+                where: {
+                    orgId: user.orgId,
+                    deletedAt: null,
+                    visibility: 'CLIENT',
+                    projectId: { in: projectIds },
+                    project: { deletedAt: null },
+                },
+            }),
         ]);
 
         const activeProjects = projects.filter(p =>
@@ -547,7 +556,7 @@ export class DashboardService {
         return {
             activeProjects,
             nextMilestonesCount: upcomingMilestonesCount,
-            latestUpdatesCount: 0, // Placeholder
+            latestUpdatesCount,
             pendingApprovals,
             sharedFilesCount,
             files,

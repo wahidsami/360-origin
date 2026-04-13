@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { IntegrationType } from '@prisma/client';
+import { createHmac } from 'crypto';
 import { PrismaService } from '../common/prisma.service';
 import { UserWithRoles } from '../common/utils/scope.utils';
 import { SlackService } from './slack.service';
@@ -9,6 +10,8 @@ import { CreateWebhookDto, UpdateWebhookDto } from './dto/webhook.dto';
 
 @Injectable()
 export class IntegrationsService {
+  private readonly logger = new Logger(IntegrationsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly slack: SlackService,
@@ -131,6 +134,64 @@ export class IntegrationsService {
     } catch {
       // log and skip - do not fail the main flow
     }
+  }
+
+  async dispatchWebhooks(
+    orgId: string,
+    event: string,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    const webhooks = await this.prisma.webhook.findMany({
+      where: {
+        orgId,
+        enabled: true,
+        events: { has: event },
+      },
+    });
+
+    if (webhooks.length === 0) {
+      return;
+    }
+
+    const body = {
+      event,
+      orgId,
+      timestamp: new Date().toISOString(),
+      data: payload,
+    };
+    const serializedBody = JSON.stringify(body);
+    const fetchFn = (globalThis as any).fetch as undefined | ((input: string, init?: any) => Promise<any>);
+
+    if (!fetchFn) {
+      this.logger.warn(`Webhook dispatch skipped for ${event}: fetch is not available`);
+      return;
+    }
+
+    await Promise.allSettled(webhooks.map(async (webhook) => {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Arena360-Event': event,
+        'X-Arena360-Org-Id': orgId,
+        'X-Arena360-Webhook-Id': webhook.id,
+      };
+
+      if (webhook.secret) {
+        headers['X-Arena360-Signature'] = createHmac('sha256', webhook.secret).update(serializedBody).digest('hex');
+      }
+
+      try {
+        const response = await fetchFn(webhook.url, {
+          method: 'POST',
+          headers,
+          body: serializedBody,
+        });
+        if (!response?.ok) {
+          this.logger.warn(`Webhook ${webhook.id} failed with status ${response?.status ?? 'unknown'}`);
+        }
+      } catch (error) {
+        this.logger.warn(`Webhook ${webhook.id} dispatch failed`, error);
+      }
+    }));
   }
 
   async listWebhooks(orgId: string, user: UserWithRoles) {

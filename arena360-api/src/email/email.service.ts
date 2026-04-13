@@ -74,6 +74,43 @@ export class EmailService {
         `;
     }
 
+    private buildNotificationEmail(title: string, body?: string, linkUrl?: string, orgName: string = 'Arena360'): { html: string; text: string } {
+        const safeTitle = this.escapeHtml(title);
+        const safeBody = this.escapeHtml(body || 'You have a new update in Arena360.');
+        const safeLink = linkUrl ? this.escapeHtml(linkUrl) : '';
+        const html = this.buildEmailShell(
+            `${safeTitle} | ${orgName}`,
+            'Arena360 Notification',
+            `
+                <div style="margin-bottom:28px;">
+                    <div style="width:56px; height:56px; border-radius:18px; background:linear-gradient(135deg, #2563eb 0%, #06b6d4 100%); color:#ffffff; font-size:24px; font-weight:800; line-height:56px; text-align:center; margin-bottom:20px;">A</div>
+                    <h1 style="margin:0 0 12px; font-size:34px; line-height:1.15; color:#0f172a;">${safeTitle}</h1>
+                    <p style="margin:0; font-size:16px; line-height:1.7; color:#475569;">${safeBody}</p>
+                </div>
+                ${linkUrl ? `
+                    <div style="margin-bottom:24px;">
+                        <a href="${safeLink}" style="display:inline-block; background:linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%); color:#ffffff; text-decoration:none; font-size:16px; font-weight:700; padding:15px 26px; border-radius:14px;">
+                            Open in Arena360
+                        </a>
+                    </div>
+                    <div style="background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:18px; padding:18px 20px; font-size:13px; line-height:1.7; word-break:break-all;">
+                        <a href="${safeLink}" style="color:#2563eb; text-decoration:none;">${safeLink}</a>
+                    </div>
+                ` : ''}
+            `,
+        );
+
+        const text = [
+            `${title}`,
+            '',
+            body || 'You have a new update in Arena360.',
+            linkUrl ? '' : null,
+            linkUrl || null,
+        ].filter(Boolean).join('\n');
+
+        return { html, text };
+    }
+
     private buildInviteEmail(to: string, inviteLink: string, orgName: string): { html: string; text: string } {
         const safeOrgName = this.escapeHtml(orgName);
         const safeInviteLink = this.escapeHtml(inviteLink);
@@ -206,6 +243,39 @@ export class EmailService {
             this.logger.log(`SUBJECT: ${subject}`);
             this.logger.log(`LINK: ${resetLink}`);
             this.logger.log('================================================================');
+        }
+    }
+
+    async sendNotificationEmail(to: string, title: string, body?: string, linkUrl?: string, orgName: string = 'Arena360'): Promise<void> {
+        const subject = `${orgName}: ${title}`;
+        const { html, text } = this.buildNotificationEmail(title, body, linkUrl, orgName);
+
+        if (this.resend) {
+            try {
+                const response = await this.resend.emails.send({
+                    from: this.fromEmail,
+                    to,
+                    subject,
+                    html,
+                    text,
+                });
+                if (response.error) {
+                    this.logger.error(`Failed to send notification email to ${to}: ${response.error.message}`);
+                    throw new Error(response.error.message || 'Notification email send failed');
+                }
+                this.logger.log(`Notification email sent to ${to}`);
+            } catch (error) {
+                this.logger.error(`Failed to send notification email to ${to}:`, error);
+                throw error;
+            }
+        } else {
+            this.logger.log('================ [DEV] NOTIFICATION EMAIL ================');
+            this.logger.log(`TO: ${to}`);
+            this.logger.log(`SUBJECT: ${subject}`);
+            this.logger.log(`TITLE: ${title}`);
+            this.logger.log(`BODY: ${body || ''}`);
+            this.logger.log(`LINK: ${linkUrl || ''}`);
+            this.logger.log('=========================================================');
         }
     }
 }

@@ -64,9 +64,10 @@ export const ClientDashboard: React.FC<{ role: Role }> = ({ role }) => {
             <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">{t('portfolio_overview')}</p>
          </div>
 
-         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             <KpiCard label={t('active_projects')} value={stats.activeProjects} icon={<Briefcase />} />
             <KpiCard label={t('next_milestones')} value={stats.nextMilestonesCount ?? 0} icon={<Flag />} />
+            <KpiCard label={t('latest_updates')} value={stats.latestUpdatesCount ?? 0} icon={<ArrowUpRight />} />
             <KpiCard label={t('pending_approvals')} value={stats.pendingApprovals ?? 0} icon={<Clock />} />
             <KpiCard label={t('shared_files')} value={stats.sharedFilesCount ?? 0} icon={<FileText />} />
          </div>
