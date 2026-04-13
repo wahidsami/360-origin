@@ -608,8 +608,43 @@ export const api = {
       }
     },
     getEnvironments: async (projectId: string): Promise<EnvironmentAccess[]> => {
-      // Backend Environment Service not yet implemented
-      return [];
+      try {
+        const environments = await fetchApi(`/projects/${projectId}/environments`);
+        return (environments || []).map((environment: any) => ({
+          ...environment,
+          credentials: environment.credentials?.username
+            ? { username: environment.credentials.username }
+            : undefined,
+        }));
+      } catch (e) {
+        console.error('Failed to get environments:', e);
+        return [];
+      }
+    },
+    createEnvironment: async (projectId: string, payload: { name: string; url: string; username?: string | null }): Promise<EnvironmentAccess | undefined> => {
+      try {
+        return await fetchApi(`/projects/${projectId}/environments`, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+      } catch (e) {
+        console.error('Failed to create environment:', e);
+        return undefined;
+      }
+    },
+    updateEnvironment: async (projectId: string, environmentId: string, payload: { name?: string; url?: string; username?: string | null }): Promise<EnvironmentAccess | undefined> => {
+      try {
+        return await fetchApi(`/projects/${projectId}/environments/${environmentId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload)
+        });
+      } catch (e) {
+        console.error('Failed to update environment:', e);
+        return undefined;
+      }
+    },
+    deleteEnvironment: async (projectId: string, environmentId: string): Promise<void> => {
+      await fetchApi(`/projects/${projectId}/environments/${environmentId}`, { method: 'DELETE' });
     },
     getFinancials: async (projectId: string): Promise<{ contract?: Contract, invoices: Invoice[] }> => {
       // Fetch both contracts and invoices in parallel

@@ -40,6 +40,26 @@ export class ProjectsController {
         return this.projectsService.getMetrics(id, req.user);
     }
 
+    @Get(':id/environments')
+    getEnvironments(@Request() req: any, @Param('id') id: string) {
+        return this.projectsService.getEnvironments(id, req.user);
+    }
+
+    @Post(':id/environments')
+    createEnvironment(@Request() req: any, @Param('id') id: string, @Body() body: { name: string; url: string; username?: string | null }) {
+        return this.projectsService.createEnvironment(id, req.user, body);
+    }
+
+    @Patch(':id/environments/:environmentId')
+    updateEnvironment(@Request() req: any, @Param('id') id: string, @Param('environmentId') environmentId: string, @Body() body: { name?: string; url?: string; username?: string | null }) {
+        return this.projectsService.updateEnvironment(id, environmentId, req.user, body);
+    }
+
+    @Delete(':id/environments/:environmentId')
+    deleteEnvironment(@Request() req: any, @Param('id') id: string, @Param('environmentId') environmentId: string) {
+        return this.projectsService.deleteEnvironment(id, environmentId, req.user);
+    }
+
     @Patch(':id')
     update(@Request() req: any, @Param('id') id: string, @Body() updateDto: UpdateProjectDto) {
         return this.projectsService.update(id, req.user, updateDto);

@@ -4,7 +4,7 @@ This tracker reflects the current codebase audit, not the older baseline reports
 
 ## Current Status
 
-- Missing: login UI SSO entry points, outgoing webhook delivery, email notifications for app events, client latest-updates feed, milestone coverage in calendar, and a real environments backend.
+- Missing: login UI SSO entry points, outgoing webhook delivery, email notifications for app events, and client latest-updates feed.
 - Partially implemented: notification preferences enforcement, notifications deep-linking, report template category support, reporting scope, and roles admin editing.
 
 ## Phase 0 - User-Facing Gaps

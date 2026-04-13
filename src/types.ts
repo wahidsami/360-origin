@@ -549,8 +549,8 @@ export interface EnvironmentAccess {
   name: string;
   url: string;
   credentials?: {
-    username: string;
-    passwordHash: string; // Mock
+    username?: string;
+    passwordHash?: string; // Legacy/mock field kept for compatibility
   };
 }
 

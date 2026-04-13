@@ -309,6 +309,16 @@ export const ProjectDetails: React.FC = () => {
     }
   }, [projectId]);
 
+  const refreshEnvironments = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const envs = await api.projects.getEnvironments(projectId);
+      setEnvironments(envs);
+    } catch (e) {
+      // Silent fail — no toast, user is not interrupted
+    }
+  }, [projectId]);
+
   const loadData = useCallback(async (requestedProjectId: string | undefined = projectId, requestId: number = latestLoadRef.current) => {
     if (!requestedProjectId) {
       setIsLoadingProject(false);
@@ -407,6 +417,32 @@ export const ProjectDetails: React.FC = () => {
     await api.projects.deleteMilestone(projectId, id);
     const ms = await api.projects.getMilestones(projectId);
     setMilestones(ms);
+    refreshReadiness();
+  };
+
+  const handleUpsertEnvironment = async (environment: { id?: string; name: string; url: string; username?: string | null }) => {
+    if (!projectId) return;
+    if (environment.id) {
+      await api.projects.updateEnvironment(projectId, environment.id, {
+        name: environment.name,
+        url: environment.url,
+        username: environment.username,
+      });
+    } else {
+      await api.projects.createEnvironment(projectId, {
+        name: environment.name,
+        url: environment.url,
+        username: environment.username,
+      });
+    }
+    await refreshEnvironments();
+    refreshReadiness();
+  };
+
+  const handleDeleteEnvironment = async (environmentId: string) => {
+    if (!projectId) return;
+    await api.projects.deleteEnvironment(projectId, environmentId);
+    await refreshEnvironments();
     refreshReadiness();
   };
 
@@ -765,7 +801,7 @@ export const ProjectDetails: React.FC = () => {
             {activeTab === 'findings' && <FindingsTab findings={findings} projectId={projectId!} onRefresh={handleRefreshFindings} />}
             {activeTab === 'reports' && <ReportsTab reports={reports} projectName={project?.name} onRefresh={loadData} />}
             {activeTab === 'financials' && <FinancialsTab contract={financialsData.contract} invoices={financialsData.invoices} onRefresh={refreshFinancials} />}
-            {activeTab === 'testing' && <EnvironmentsTab environments={environments} />}
+            {activeTab === 'testing' && <EnvironmentsTab environments={environments} canManage={can(Permission.MANAGE_PROJECTS)} onUpsert={handleUpsertEnvironment} onDelete={handleDeleteEnvironment} />}
             {activeTab === 'discussions' && <DiscussionsTab
               projectId={projectId!}
               discussions={discussions}

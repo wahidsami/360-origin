@@ -1,7 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { ScopeUtils, UserWithRoles } from '../common/utils/scope.utils';
 import { ActivityService } from '../activity/activity.service';
+
+type ProjectEnvironmentRow = {
+    id: string;
+    projectId: string;
+    name: string;
+    url: string;
+    credentialsUsername: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+};
 
 @Injectable()
 export class ProjectsService {
@@ -9,6 +20,31 @@ export class ProjectsService {
         private prisma: PrismaService,
         private activityService: ActivityService,
     ) { }
+
+    private isInternalManager(role: string) {
+        return ['SUPER_ADMIN', 'OPS', 'PM', 'DEV', 'QA', 'FINANCE'].includes(role);
+    }
+
+    private mapEnvironment(environment: any, user: UserWithRoles) {
+        const exposeCredentials = this.isInternalManager(user.role);
+        return {
+            id: environment.id,
+            projectId: environment.projectId,
+            name: environment.name,
+            url: environment.url,
+            credentials: exposeCredentials && environment.credentialsUsername
+                ? { username: environment.credentialsUsername }
+                : undefined,
+            createdAt: environment.createdAt,
+            updatedAt: environment.updatedAt,
+        };
+    }
+
+    private assertCanManageEnvironments(user: UserWithRoles) {
+        if (!this.isInternalManager(user.role)) {
+            throw new ForbiddenException('Only internal staff can manage environment access');
+        }
+    }
 
     private async resolveWorkspaceConfigDraft(
         user: UserWithRoles,
@@ -277,6 +313,200 @@ export class ProjectsService {
         });
     }
 
+    async getEnvironments(projectId: string, user: UserWithRoles) {
+        await this.findOne(projectId, user);
+        const environments = await this.prisma.$queryRaw<ProjectEnvironmentRow[]>`
+            SELECT
+                id,
+                "projectId",
+                name,
+                url,
+                "credentialsUsername",
+                "createdAt",
+                "updatedAt"
+            FROM "ProjectEnvironment"
+            WHERE "projectId" = ${projectId}
+              AND "orgId" = ${user.orgId}
+            ORDER BY "createdAt" ASC
+        `;
+        return environments.map((environment) => this.mapEnvironment(environment, user));
+    }
+
+    async createEnvironment(projectId: string, user: UserWithRoles, payload: { name: string; url: string; username?: string | null }) {
+        await this.findOne(projectId, user);
+        this.assertCanManageEnvironments(user);
+
+        const name = payload.name?.trim();
+        const url = payload.url?.trim();
+        if (!name || !url) {
+            throw new BadRequestException('Environment name and URL are required');
+        }
+
+        const created = await this.prisma.$queryRaw<ProjectEnvironmentRow[]>`
+            INSERT INTO "ProjectEnvironment" (
+                id,
+                "orgId",
+                "projectId",
+                name,
+                url,
+                "credentialsUsername",
+                "createdAt",
+                "updatedAt"
+            ) VALUES (
+                ${randomUUID()},
+                ${user.orgId},
+                ${projectId},
+                ${name},
+                ${url},
+                ${payload.username?.trim() || null},
+                NOW(),
+                NOW()
+            )
+            RETURNING
+                id,
+                "projectId",
+                name,
+                url,
+                "credentialsUsername",
+                "createdAt",
+                "updatedAt"
+        `;
+        const createdEnvironment = created[0];
+        if (!createdEnvironment) {
+            throw new Error('Failed to create environment');
+        }
+
+        await this.activityService.create({
+            orgId: user.orgId,
+            projectId,
+            userId: user.id,
+            action: 'created',
+            entityType: 'environment',
+            entityId: createdEnvironment.id,
+            description: `Created environment access ${createdEnvironment.name}`,
+            metadata: { name: createdEnvironment.name, url: createdEnvironment.url },
+        });
+
+        return this.mapEnvironment(createdEnvironment, user);
+    }
+
+    async updateEnvironment(projectId: string, environmentId: string, user: UserWithRoles, payload: { name?: string; url?: string; username?: string | null }) {
+        await this.findOne(projectId, user);
+        this.assertCanManageEnvironments(user);
+
+        const existingRows = await this.prisma.$queryRaw<ProjectEnvironmentRow[]>`
+            SELECT
+                id,
+                "projectId",
+                name,
+                url,
+                "credentialsUsername",
+                "createdAt",
+                "updatedAt"
+            FROM "ProjectEnvironment"
+            WHERE id = ${environmentId}
+              AND "projectId" = ${projectId}
+              AND "orgId" = ${user.orgId}
+            LIMIT 1
+        `;
+        const existing = existingRows[0];
+        if (!existing) throw new NotFoundException('Environment not found');
+
+        const nextName = payload.name !== undefined
+            ? (() => {
+                const value = payload.name.trim();
+                if (!value) throw new BadRequestException('Environment name cannot be empty');
+                return value;
+            })()
+            : existing.name;
+        const nextUrl = payload.url !== undefined
+            ? (() => {
+                const value = payload.url.trim();
+                if (!value) throw new BadRequestException('Environment URL cannot be empty');
+                return value;
+            })()
+            : existing.url;
+        const nextUsername = payload.username !== undefined
+            ? (payload.username?.trim() || null)
+            : existing.credentialsUsername;
+
+        const updatedRows = await this.prisma.$queryRaw<ProjectEnvironmentRow[]>`
+            UPDATE "ProjectEnvironment"
+            SET
+                name = ${nextName},
+                url = ${nextUrl},
+                "credentialsUsername" = ${nextUsername},
+                "updatedAt" = NOW()
+            WHERE id = ${existing.id}
+            RETURNING
+                id,
+                "projectId",
+                name,
+                url,
+                "credentialsUsername",
+                "createdAt",
+                "updatedAt"
+        `;
+        const updated = updatedRows[0];
+        if (!updated) {
+            throw new Error('Failed to update environment');
+        }
+
+        await this.activityService.create({
+            orgId: user.orgId,
+            projectId,
+            userId: user.id,
+            action: 'updated',
+            entityType: 'environment',
+            entityId: updated.id,
+            description: `Updated environment access ${updated.name}`,
+            metadata: { name: updated.name, url: updated.url },
+        });
+
+        return this.mapEnvironment(updated, user);
+    }
+
+    async deleteEnvironment(projectId: string, environmentId: string, user: UserWithRoles) {
+        await this.findOne(projectId, user);
+        this.assertCanManageEnvironments(user);
+
+        const existingRows = await this.prisma.$queryRaw<ProjectEnvironmentRow[]>`
+            SELECT
+                id,
+                "projectId",
+                name,
+                url,
+                "credentialsUsername",
+                "createdAt",
+                "updatedAt"
+            FROM "ProjectEnvironment"
+            WHERE id = ${environmentId}
+              AND "projectId" = ${projectId}
+              AND "orgId" = ${user.orgId}
+            LIMIT 1
+        `;
+        const existing = existingRows[0];
+        if (!existing) throw new NotFoundException('Environment not found');
+
+        await this.prisma.$queryRaw`
+            DELETE FROM "ProjectEnvironment"
+            WHERE id = ${existing.id}
+        `;
+
+        await this.activityService.create({
+            orgId: user.orgId,
+            projectId,
+            userId: user.id,
+            action: 'deleted',
+            entityType: 'environment',
+            entityId: existing.id,
+            description: `Deleted environment access ${existing.name}`,
+            metadata: { name: existing.name, url: existing.url },
+        });
+
+        return { success: true };
+    }
+
     async addMember(projectId: string, userId: string, role: any) {
         const project = await this.prisma.project.findUnique({ where: { id: projectId } });
         if (!project) throw new NotFoundException('Project not found');
@@ -367,6 +597,13 @@ export class ProjectsService {
         const timeEntriesCount = await this.prisma.timeEntry.count({
             where: { taskId: { in: project.tasks.map(t => t.id) } }
         });
+        const environmentCount = await this.prisma.$queryRaw<Array<{ count: bigint }>>`
+            SELECT COUNT(*)::bigint AS count
+            FROM "ProjectEnvironment"
+            WHERE "projectId" = ${id}
+              AND "orgId" = ${user.orgId}
+        `;
+        const hasEnvironments = Number(environmentCount[0]?.count || 0) > 0;
 
         // Scrub Financial Data for DEV Role
         if (user.role === 'DEV') {
@@ -400,7 +637,7 @@ export class ProjectsService {
         const resourcesItems = [
             { id: 'files', label: 'Required Files', status: project.files.length > 0 ? 'complete' : 'missing', type: 'required', tab: 'files', action: { type: 'navigate_tab', target: 'files' } },
             { id: 'financials', label: 'Financial Setup', status: (project.contracts.length > 0 || project.invoices.length > 0) ? 'complete' : 'missing', type: 'conditional', tab: 'financials', action: { type: 'navigate_tab', target: 'financials' } },
-            { id: 'testing', label: 'Testing Access', status: 'not_applicable', type: 'conditional', tab: 'testing-access' },
+            { id: 'testing', label: 'Testing Access', status: hasEnvironments ? 'complete' : 'missing', type: 'conditional', tab: 'testing', action: { type: 'navigate_tab', target: 'testing' } },
         ];
 
         // Stats

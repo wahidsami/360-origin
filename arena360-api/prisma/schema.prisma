@@ -254,6 +254,7 @@ model Org {
   projectWorkspaceTemplates ProjectWorkspaceTemplate[]
   clientWorkspaceTemplateAssignments ClientWorkspaceTemplateAssignment[]
   projectWorkspaceConfigs ProjectWorkspaceConfig[]
+  projectEnvironments ProjectEnvironment[]
   projectReports ProjectReport[]
   projectReportEntries ProjectReportEntry[]
   projectReportExports ProjectReportExport[]
@@ -479,6 +480,25 @@ model Project {
   contracts  Contract[]
   invoices   Invoice[]
   discussions Discussion[]
+  projectEnvironments ProjectEnvironment[]
+}
+
+model ProjectEnvironment {
+  id        String   @id @default(cuid())
+  orgId     String
+  org       Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  name              String
+  url               String
+  credentialsUsername String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orgId])
+  @@index([projectId])
 }
 
 model ProjectWorkspaceTemplate {
