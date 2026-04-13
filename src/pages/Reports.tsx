@@ -31,9 +31,9 @@ export const Reports: React.FC = () => {
     () =>
       isArabic
         ? {
-            title: 'تقارير إمكانية الوصول',
+            title: 'التقارير',
             subtitleClient: 'تظهر هنا التقارير المنشورة الجاهزة للعميل.',
-            subtitleInternal: 'مكتبة موحدة لتقارير إمكانية الوصول المنشأة من القوالب فقط.',
+            subtitleInternal: 'مكتبة موحدة للتقارير المنشأة من القوالب.',
             publishedOnly: 'المنشور فقط',
             totalReports: 'إجمالي التقارير',
             projects: 'المشاريع',
@@ -72,9 +72,9 @@ export const Reports: React.FC = () => {
             exportError: 'لا يتوفر تصدير PDF لهذا التقرير حتى الآن.',
           }
         : {
-            title: 'Accessibility Reports',
+            title: 'Reports',
             subtitleClient: 'Published client-ready reports appear here.',
-            subtitleInternal: 'A single library of accessibility reports created from templates only.',
+            subtitleInternal: 'A single library of reports created from templates.',
             publishedOnly: 'Published only',
             totalReports: 'Total Reports',
             projects: 'Projects',

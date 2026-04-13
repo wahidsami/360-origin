@@ -36,7 +36,6 @@ import { FileCategory, FileScopeType, FileVisibility, GlobalRole, ProjectReportM
 @Injectable()
 export class ReportBuilderService {
   private readonly logger = new Logger(ReportBuilderService.name);
-  private readonly canonicalAccessibilityTemplateCode = 'accessibility-audit';
   private static readonly cp1252ReverseMap: Record<number, number> = {
     0x20ac: 0x80,
     0x201a: 0x82,
@@ -84,14 +83,6 @@ export class ReportBuilderService {
       .replace(/[^a-z0-9-]/g, '-')
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
-  }
-
-  private accessibilityTemplateWhere(orgId: string) {
-    return {
-      orgId,
-      category: 'ACCESSIBILITY' as const,
-      code: this.canonicalAccessibilityTemplateCode,
-    };
   }
 
   private normalizePreviewLocale(locale?: string | null): 'en' | 'ar' | undefined {
@@ -1957,7 +1948,7 @@ export class ReportBuilderService {
 
   async listTemplates(orgId: string) {
     return this.prisma.reportBuilderTemplate.findMany({
-      where: this.accessibilityTemplateWhere(orgId),
+      where: { orgId },
       include: {
         versions: {
           orderBy: [{ versionNumber: 'desc' }],
@@ -1972,22 +1963,22 @@ export class ReportBuilderService {
   }
 
   async createTemplate(orgId: string, user: UserWithRoles, dto: CreateReportBuilderTemplateDto) {
-    const code = this.canonicalAccessibilityTemplateCode;
+    const code = this.normalizeCode(dto.code);
     if (!code) throw new BadRequestException('Template code is required');
     const existing = await this.prisma.reportBuilderTemplate.findFirst({
-      where: this.accessibilityTemplateWhere(orgId),
+      where: { orgId, code },
       select: { id: true },
     });
     if (existing) {
-      throw new BadRequestException('The accessibility tool already exists. Create a new version instead.');
+      throw new BadRequestException('A template with this code already exists.');
     }
     const template = await this.prisma.reportBuilderTemplate.create({
       data: {
         orgId,
-        name: dto.name.trim() || 'Accessibility Audit',
+        name: dto.name.trim() || 'Report Template',
         code,
         description: dto.description?.trim(),
-        category: 'ACCESSIBILITY',
+        category: dto.category ?? 'OTHER',
         status: dto.status ?? 'DRAFT',
         createdById: user.id,
       },
@@ -1998,7 +1989,7 @@ export class ReportBuilderService {
       action: 'report-template.created',
       entityType: 'report_template',
       entityId: template.id,
-      description: `Accessibility tool "${template.name}" created.`,
+      description: `Report template "${template.name}" created.`,
       metadata: { templateId: template.id, code: template.code, category: template.category },
     });
     return template;
@@ -2006,15 +1997,24 @@ export class ReportBuilderService {
 
   async updateTemplate(orgId: string, id: string, dto: UpdateReportBuilderTemplateDto, user?: UserWithRoles) {
     const current = await this.ensureTemplateInOrg(id, orgId);
-    if (current.code !== this.canonicalAccessibilityTemplateCode) {
-      throw new BadRequestException('Only the canonical accessibility tool is available in this flow.');
+    const nextCode = dto.code != null ? this.normalizeCode(dto.code) : current.code;
+    if (!nextCode) throw new BadRequestException('Template code is required');
+    if (nextCode !== current.code) {
+      const codeConflict = await this.prisma.reportBuilderTemplate.findFirst({
+        where: { orgId, code: nextCode, id: { not: id } },
+        select: { id: true },
+      });
+      if (codeConflict) {
+        throw new BadRequestException('A template with this code already exists.');
+      }
     }
     const template = await this.prisma.reportBuilderTemplate.update({
       where: { id },
       data: {
         ...(dto.name != null && { name: dto.name.trim() }),
-        code: this.canonicalAccessibilityTemplateCode,
+        code: nextCode,
         ...(dto.description !== undefined && { description: dto.description?.trim() || null }),
+        ...(dto.category != null && { category: dto.category }),
         ...(dto.status != null && { status: dto.status }),
       },
     });
@@ -2024,7 +2024,7 @@ export class ReportBuilderService {
       action: 'report-template.updated',
       entityType: 'report_template',
       entityId: template.id,
-      description: `Accessibility tool "${template.name}" updated.`,
+      description: `Report template "${template.name}" updated.`,
       metadata: { templateId: template.id, previousStatus: current.status, nextStatus: template.status },
     });
     return template;
@@ -2037,9 +2037,6 @@ export class ReportBuilderService {
     user?: UserWithRoles,
   ) {
     const template = await this.ensureTemplateInOrg(templateId, orgId);
-    if (template.category !== 'ACCESSIBILITY') {
-      throw new BadRequestException('Only accessibility tools are supported in the simplified audit flow.');
-    }
     const latest = await this.prisma.reportBuilderTemplateVersion.findFirst({
       where: { templateId },
       orderBy: { versionNumber: 'desc' },
@@ -2112,10 +2109,6 @@ export class ReportBuilderService {
       where: {
         orgId,
         clientId,
-        template: {
-          code: this.canonicalAccessibilityTemplateCode,
-          category: 'ACCESSIBILITY',
-        },
       },
       include: {
         template: true,
@@ -2235,10 +2228,6 @@ export class ReportBuilderService {
         orgId: user.orgId,
         clientId: project.clientId,
         isActive: true,
-        template: {
-          code: this.canonicalAccessibilityTemplateCode,
-          category: 'ACCESSIBILITY',
-        },
       },
       include: {
         template: true,
@@ -2256,10 +2245,6 @@ export class ReportBuilderService {
         orgId: user.orgId,
         projectId,
         deletedAt: null,
-        template: {
-          code: this.canonicalAccessibilityTemplateCode,
-          category: 'ACCESSIBILITY',
-        },
         ...(isClientUser && {
           status: 'PUBLISHED',
           visibility: 'CLIENT',
@@ -2775,10 +2760,6 @@ export class ReportBuilderService {
         deletedAt: null,
         visibility: 'CLIENT',
         status: 'PUBLISHED',
-        template: {
-          code: this.canonicalAccessibilityTemplateCode,
-          category: 'ACCESSIBILITY',
-        },
         project: ScopeUtils.projectScope(user),
       },
       include: {
@@ -2802,10 +2783,6 @@ export class ReportBuilderService {
       where: {
         orgId: user.orgId,
         deletedAt: null,
-        template: {
-          code: this.canonicalAccessibilityTemplateCode,
-          category: 'ACCESSIBILITY',
-        },
         project: ScopeUtils.projectScope(user),
       },
       include: {

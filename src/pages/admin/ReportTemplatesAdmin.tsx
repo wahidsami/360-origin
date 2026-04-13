@@ -18,7 +18,14 @@ import {
   getAccessibilityOutputLocale,
   getAccessibilitySubcategoryLabel,
 } from '@/features/accessibility/accessibilityAuditConfig';
-import { Client, ClientReportTemplateAssignment, ReportBuilderTemplate, ReportBuilderTemplateVersion, Role } from '@/types';
+import {
+  Client,
+  ClientReportTemplateAssignment,
+  ReportBuilderTemplate,
+  ReportBuilderTemplateCategory,
+  ReportBuilderTemplateVersion,
+  Role,
+} from '@/types';
 
 const ACCESSIBILITY_ENTRY_FIELD_DEFINITIONS = [
   { key: 'serviceName', labelEn: 'Service Name / Module', labelAr: 'اسم الخدمة / الوحدة', type: 'text', required: true },
@@ -33,6 +40,19 @@ const ACCESSIBILITY_ENTRY_FIELD_DEFINITIONS = [
 ] as const;
 
 const FIXED_ENTRY_FIELDS = ACCESSIBILITY_ENTRY_FIELD_DEFINITIONS.map((field) => field.labelEn);
+const TEMPLATE_CATEGORY_LABELS: Record<ReportBuilderTemplateCategory, { en: string; ar: string }> = {
+  ACCESSIBILITY: { en: 'Accessibility', ar: 'إمكانية الوصول' },
+  SECURITY: { en: 'Security', ar: 'الأمن' },
+  QA: { en: 'QA', ar: 'ضمان الجودة' },
+  PERFORMANCE: { en: 'Performance', ar: 'الأداء' },
+  COMPLIANCE: { en: 'Compliance', ar: 'الامتثال' },
+  OTHER: { en: 'Other', ar: 'أخرى' },
+};
+
+const TEMPLATE_CATEGORIES: ReportBuilderTemplateCategory[] = ['ACCESSIBILITY', 'SECURITY', 'QA', 'PERFORMANCE', 'COMPLIANCE', 'OTHER'];
+
+const categoryLabel = (category: ReportBuilderTemplateCategory, locale: 'en' | 'ar') =>
+  TEMPLATE_CATEGORY_LABELS[category]?.[locale] || category;
 
 const buildAccessibilityVersionPayload = (
   locale: AccessibilityAuditOutputLocale,
@@ -94,23 +114,23 @@ export const ReportTemplatesAdmin: React.FC = () => {
   const isArabic = i18n.language === 'ar';
   const uiLocale: AccessibilityAuditOutputLocale = isArabic ? 'ar' : 'en';
   const copy = React.useMemo(() => (isArabic ? {
-    pageTitle: 'لوحة الإدارة / أداة إمكانية الوصول',
-    pageDescription: 'إدارة أداة إمكانية الوصول الثابتة، ونشر الإصدارات غير القابلة للتعديل، ومعاينة شكل التصدير النهائي، وتعيينها للعملاء.',
+    pageTitle: 'لوحة الإدارة / قوالب التقارير',
+    pageDescription: 'إدارة قوالب التقارير وإصداراتها، ومعاينة شكل التصدير النهائي، وتعيينها للعملاء.',
     users: 'المستخدمون',
     roles: 'الأدوار',
-    createTool: 'إنشاء أداة إمكانية الوصول',
-    loadingAdmin: 'جاري تحميل إعدادات أداة إمكانية الوصول...',
-    toolTitle: 'أداة إمكانية الوصول',
-    toolSummary: 'أداة واحدة ثابتة لإمكانية الوصول وإصداراتها.',
+    createTool: 'إنشاء قالب تقرير',
+    loadingAdmin: 'جاري تحميل إدارة قوالب التقارير...',
+    toolTitle: 'قوالب التقارير',
+    toolSummary: 'قوالب التقارير وإصداراتها.',
     assignmentsCount: 'تعيينات',
     noToolYet: 'لا توجد أداة إمكانية وصول بعد. أنشئها لبدء مسار التدقيق.',
     toolDetails: 'تفاصيل الأداة',
     accessibility: 'إمكانية الوصول',
-    toolName: 'اسم الأداة',
+    toolName: 'اسم القالب',
     internalCode: 'الرمز الداخلي',
-    internalCodeHelp: 'مفتاح داخلي ثابت لمسار أداة إمكانية الوصول.',
-    toolDescription: 'وصف الأداة',
-    saveToolDetails: 'حفظ تفاصيل الأداة',
+    internalCodeHelp: 'مفتاح داخلي للقالب.',
+    toolDescription: 'وصف القالب',
+    saveToolDetails: 'حفظ تفاصيل القالب',
     newVersion: 'إصدار جديد',
     findingFields: 'حقول الملاحظات',
     enabledCategories: 'التصنيفات المفعلة',
@@ -125,8 +145,8 @@ export const ReportTemplatesAdmin: React.FC = () => {
     loading: 'جاري التحميل...',
     preview: 'معاينة',
     publish: 'نشر',
-    fixedDefinition: 'التعريف الثابت لإمكانية الوصول',
-    includedFields: 'حقول الملاحظات المضمنة',
+    fixedDefinition: 'تعريف الحقول الحالي',
+    includedFields: 'حقول السجل المضمنة',
     exportAiBehavior: 'سلوك التصدير والذكاء الاصطناعي',
     exportRule1: 'تصدير PDF أفقي',
     exportRule2: 'صفحة غلاف، مقدمة بالذكاء الاصطناعي، إحصاءات، جدول الملاحظات، ملخص التوصيات، وصفحة ختامية',
@@ -151,20 +171,21 @@ export const ReportTemplatesAdmin: React.FC = () => {
     enable: 'تفعيل',
     markDefault: 'تعيين كافتراضي',
     noAssignments: 'لا توجد تعيينات لهذه الأداة لدى العميل المحدد حتى الآن.',
-    createToolPrompt: 'أنشئ أداة إمكانية الوصول لبدء مسار التدقيق المبسط.',
-    previewTitle: 'معاينة أداة إمكانية الوصول',
+    createToolPrompt: 'أنشئ قالب تقرير لبدء المسار.',
+    previewTitle: 'معاينة القالب',
     previewDescription: 'تستخدم هذه المعاينة بيانات تجريبية من إصدار الأداة المحدد حتى يتمكن مسؤولو النظام من مراجعة شكل التصدير النهائي قبل تعيينه للعملاء.',
-    createToolTitle: 'إنشاء أداة إمكانية الوصول',
+    createToolTitle: 'إنشاء قالب تقرير',
     toolNameInput: 'اسم الأداة',
     toolCodeInput: 'رمز الأداة',
+    toolCategoryInput: 'فئة القالب',
     description: 'الوصف',
-    createToolHelp: 'يؤدي هذا إلى إنشاء أداة إمكانية الوصول الرئيسية فقط. أما بنية الملاحظات الثابتة وإعدادات التصدير وسلوك الذكاء الاصطناعي وتصنيف الفئات فتوجد داخل إصدارات الأداة.',
+    createToolHelp: 'يؤدي هذا إلى إنشاء قالب تقرير جديد. ما زال بإمكانك استخدام بنية التدقيق الحالية للإصدار، لكن القالب نفسه لم يعد محصوراً في فئة واحدة.',
     cancel: 'إلغاء',
-    create: 'إنشاء الأداة',
-    createVersionTitle: 'إنشاء إصدار لأداة إمكانية الوصول',
-    createVersionHelp: 'يؤدي هذا إلى إنشاء إصدار تدقيق إمكانية الوصول الثابت المحدد في مواصفات المنتج. يمكنك تحديد لغة الإخراج الافتراضية واختيار الفئات والتصنيفات الفرعية المتاحة داخل هذا الإصدار.',
+    create: 'إنشاء القالب',
+    createVersionTitle: 'إنشاء إصدار قالب',
+    createVersionHelp: 'يؤدي هذا إلى إنشاء إصدار للقالب المحدد. يمكنك تحديد لغة الإخراج الافتراضية واختيار الفئات والتصنيفات الفرعية عندما يكون القالب من نوع إمكانية الوصول.',
     defaultLanguage: 'لغة المعاينة / التصدير الافتراضية',
-    defaultLanguageHelp: 'يمكن للمدققين تبديل لغة المعاينة لاحقاً، لكن هذا يحدد لغة الإخراج الافتراضية لإصدار الأداة.',
+    defaultLanguageHelp: 'يمكن للمدققين تبديل لغة المعاينة لاحقاً، لكن هذا يحدد لغة الإخراج الافتراضية لإصدار القالب.',
     englishLtr: 'الإنجليزية / LTR',
     arabicRtl: 'العربية / RTL',
     exportIncludes: 'يتضمن التصدير صفحة غلاف، ومقدمة بالذكاء الاصطناعي، وإحصاءات، وجدول الملاحظات، وملخص التوصيات، وصفحة ختامية.',
@@ -173,44 +194,44 @@ export const ReportTemplatesAdmin: React.FC = () => {
     categoryAvailabilityHelp: 'عطّل الفئات أو التصنيفات الفرعية لإخفائها من هذا الإصدار دون حذفها من المكتبة الرئيسية.',
     includeAll: 'تضمين الكل',
     subcategoriesEnabled: 'تصنيفات فرعية مفعلة',
-    failedLoad: 'فشل تحميل إدارة أداة إمكانية الوصول.',
+    failedLoad: 'فشل تحميل إدارة قوالب التقارير.',
     failedLoadAssignments: 'فشل تحميل تعيينات العملاء.',
-    createdToolSuccess: 'تم إنشاء أداة إمكانية الوصول.',
+    createdToolSuccess: 'تم إنشاء قالب التقرير.',
     createdToolError: 'فشل إنشاء أداة إمكانية الوصول.',
-    emptyMainCategoryError: 'فعّل تصنيفاً رئيسياً واحداً على الأقل قبل إنشاء إصدار الأداة.',
+    emptyMainCategoryError: 'فعّل تصنيفاً رئيسياً واحداً على الأقل قبل إنشاء الإصدار.',
     emptySubcategoryError: 'يحتاج كل تصنيف رئيسي مفعّل إلى تصنيف فرعي واحد مفعّل على الأقل.',
-    draftedVersionSuccess: 'تم إنشاء مسودة إصدار الأداة.',
+    draftedVersionSuccess: 'تم إنشاء مسودة الإصدار.',
     draftedVersionError: 'فشل إنشاء إصدار الأداة.',
     publishedVersionSuccess: 'تم نشر إصدار الأداة.',
     publishedVersionError: 'فشل نشر إصدار الأداة.',
     failedSamplePreview: 'فشل تحميل معاينة النموذج المعروضة.',
-    updatedToolSuccess: 'تم تحديث تفاصيل أداة إمكانية الوصول.',
+    updatedToolSuccess: 'تم تحديث تفاصيل القالب.',
     updatedToolError: 'فشل تحديث تفاصيل أداة إمكانية الوصول.',
-    assignedToolSuccess: 'تم تعيين أداة إمكانية الوصول للعميل.',
+    assignedToolSuccess: 'تم تعيين القالب للعميل.',
     assignedToolError: 'فشل تعيين أداة إمكانية الوصول.',
     assignmentUpdated: 'تم تحديث التعيين.',
     assignmentUpdateError: 'فشل تحديث التعيين.',
     createVersion: 'إنشاء الإصدار',
-    restrictedTitle: 'أداة إمكانية الوصول',
-    restrictedBody: 'هذه المنطقة متاحة فقط لدور SUPER_ADMIN. يظل نشر إصدارات الأداة وتعيينها للعملاء مركزياً هنا.',
+    restrictedTitle: 'قوالب التقارير',
+    restrictedBody: 'هذه المنطقة متاحة فقط لدور SUPER_ADMIN. يظل نشر الإصدارات وتعيينها للعملاء مركزياً هنا.',
   } : {
-    pageTitle: 'Admin / Accessibility Tool',
-    pageDescription: 'Manage the fixed accessibility tool, publish immutable versions, preview the exported layout, and assign it to clients.',
+    pageTitle: 'Admin / Report Templates',
+    pageDescription: 'Manage report templates, publish versions, preview the exported layout, and assign them to clients.',
     users: 'Users',
     roles: 'Roles',
-    createTool: 'Create Accessibility Tool',
-    loadingAdmin: 'Loading accessibility tool administration...',
-    toolTitle: 'Accessibility Tool',
-    toolSummary: 'One fixed accessibility tool and its versions.',
+    createTool: 'Create Report Template',
+    loadingAdmin: 'Loading report template administration...',
+    toolTitle: 'Report Templates',
+    toolSummary: 'Report templates and their versions.',
     assignmentsCount: 'assignments',
-    noToolYet: 'No accessibility tool yet. Create it to start the audit flow.',
+    noToolYet: 'No report template yet. Create one to start the workflow.',
     toolDetails: 'Tool Details',
     accessibility: 'Accessibility',
-    toolName: 'Tool Name',
+    toolName: 'Template Name',
     internalCode: 'Internal Code',
-    internalCodeHelp: 'Fixed internal key for the accessibility tool flow.',
-    toolDescription: 'Tool Description',
-    saveToolDetails: 'Save Tool Details',
+    internalCodeHelp: 'Internal key for the template.',
+    toolDescription: 'Template Description',
+    saveToolDetails: 'Save Template Details',
     newVersion: 'New Version',
     findingFields: 'Finding Fields',
     enabledCategories: 'Enabled Categories',
@@ -225,8 +246,8 @@ export const ReportTemplatesAdmin: React.FC = () => {
     loading: 'Loading...',
     preview: 'Preview',
     publish: 'Publish',
-    fixedDefinition: 'Fixed Accessibility Definition',
-    includedFields: 'Included Finding Fields',
+    fixedDefinition: 'Current Field Definition',
+    includedFields: 'Included Fields',
     exportAiBehavior: 'Export and AI Behavior',
     exportRule1: 'Landscape PDF export',
     exportRule2: 'Cover page, AI introduction, statistics, findings table, recommendations summary, and closing page',
@@ -251,18 +272,19 @@ export const ReportTemplatesAdmin: React.FC = () => {
     enable: 'Enable',
     markDefault: 'Mark Default',
     noAssignments: 'No assignments for this tool on the selected client yet.',
-    createToolPrompt: 'Create the accessibility tool to begin the simplified audit flow.',
-    previewTitle: 'Accessibility Tool Preview',
+    createToolPrompt: 'Create a report template to begin the workflow.',
+    previewTitle: 'Template Preview',
     previewDescription: 'This mock preview uses sample data from the selected tool version so admin users can review the final export layout before client assignment.',
-    createToolTitle: 'Create Accessibility Tool',
+    createToolTitle: 'Create Report Template',
     toolNameInput: 'Tool name',
     toolCodeInput: 'Tool code',
+    toolCategoryInput: 'Template category',
     description: 'Description',
-    createToolHelp: 'This creates the master accessibility tool only. The fixed finding structure, export settings, AI behavior, and category taxonomy live in the tool versions.',
+    createToolHelp: 'This creates a new report template shell. You can still use the current audit version structure, but the template is no longer locked to one category.',
     cancel: 'Cancel',
     create: 'Create Tool',
-    createVersionTitle: 'Create Accessibility Tool Version',
-    createVersionHelp: 'This creates the fixed Accessibility Audit version defined by the product spec. You can set the default output language and decide which categories and subcategories stay available inside this tool version.',
+    createVersionTitle: 'Create Template Version',
+    createVersionHelp: 'This creates a version for the selected template. You can set the default output language and decide which categories and subcategories stay available when the template is Accessibility.',
     defaultLanguage: 'Default Preview / Export Language',
     defaultLanguageHelp: 'Auditors can still switch preview language later, but this controls the default output for the tool version.',
     englishLtr: 'English / LTR',
@@ -273,26 +295,26 @@ export const ReportTemplatesAdmin: React.FC = () => {
     categoryAvailabilityHelp: 'Disable categories or subcategories to keep them out of this tool version without deleting them from the master library.',
     includeAll: 'Include All',
     subcategoriesEnabled: 'subcategories enabled',
-    failedLoad: 'Failed to load accessibility tool administration.',
+    failedLoad: 'Failed to load report template administration.',
     failedLoadAssignments: 'Failed to load client assignments.',
-    createdToolSuccess: 'Accessibility tool created.',
-    createdToolError: 'Failed to create accessibility tool.',
+    createdToolSuccess: 'Report template created.',
+    createdToolError: 'Failed to create report template.',
     emptyMainCategoryError: 'Enable at least one main category before creating a tool version.',
     emptySubcategoryError: 'Each enabled main category needs at least one enabled subcategory.',
-    draftedVersionSuccess: 'Tool version drafted.',
+    draftedVersionSuccess: 'Template version drafted.',
     draftedVersionError: 'Failed to create tool version.',
     publishedVersionSuccess: 'Tool version published.',
     publishedVersionError: 'Failed to publish tool version.',
     failedSamplePreview: 'Failed to load rendered sample preview.',
-    updatedToolSuccess: 'Accessibility tool details updated.',
-    updatedToolError: 'Failed to update accessibility tool details.',
-    assignedToolSuccess: 'Accessibility tool assigned to client.',
-    assignedToolError: 'Failed to assign accessibility tool.',
+    updatedToolSuccess: 'Template details updated.',
+    updatedToolError: 'Failed to update template details.',
+    assignedToolSuccess: 'Template assigned to client.',
+    assignedToolError: 'Failed to assign template.',
     assignmentUpdated: 'Assignment updated.',
     assignmentUpdateError: 'Failed to update assignment.',
     createVersion: 'Create Version',
-    restrictedTitle: 'Accessibility Tool',
-    restrictedBody: 'This area is restricted to SUPER_ADMIN. Tool version publishing and client assignment stay centralized here.',
+    restrictedTitle: 'Report Templates',
+    restrictedBody: 'This area is restricted to SUPER_ADMIN. Version publishing and client assignment stay centralized here.',
   }), [isArabic]);
   const fixedEntryFieldLabels = React.useMemo(() => ACCESSIBILITY_ENTRY_FIELD_DEFINITIONS.map((field) => (isArabic ? field.labelAr : field.labelEn)), [isArabic]);
   const statusLabel = React.useCallback((status: string) => {
@@ -318,11 +340,12 @@ export const ReportTemplatesAdmin: React.FC = () => {
   const [templateForm, setTemplateForm] = React.useState({
     name: 'Accessibility Audit',
     code: 'accessibility-audit',
-    description: 'Fixed accessibility audit tool for project-level reports.',
+    category: 'ACCESSIBILITY' as ReportBuilderTemplateCategory,
+    description: 'Fixed report template for project-level reports.',
   });
   const [toolDetailsForm, setToolDetailsForm] = React.useState({
     name: 'Accessibility Audit',
-    description: 'Fixed accessibility audit tool for project-level reports.',
+    description: 'Fixed report template for project-level reports.',
   });
   const [versionLocale, setVersionLocale] = React.useState<AccessibilityAuditOutputLocale>('en');
   const [versionTaxonomySelection, setVersionTaxonomySelection] = React.useState<AccessibilityAuditTaxonomySelection>(
@@ -441,10 +464,7 @@ export const ReportTemplatesAdmin: React.FC = () => {
   const handleCreateTemplate = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
-      const created = await api.reportBuilderAdmin.createTemplate({
-        ...templateForm,
-        category: 'ACCESSIBILITY',
-      });
+      const created = await api.reportBuilderAdmin.createTemplate(templateForm);
       await loadTemplates(created.id);
       setTemplateModalOpen(false);
       toast.success(copy.createdToolSuccess);
@@ -527,6 +547,8 @@ export const ReportTemplatesAdmin: React.FC = () => {
       await api.reportBuilderAdmin.updateTemplate(selectedTemplate.id, {
         name: toolDetailsForm.name.trim(),
         description: toolDetailsForm.description.trim(),
+        code: selectedTemplate.code,
+        category: selectedTemplate.category,
       });
       await loadTemplates(selectedTemplate.id);
       toast.success(copy.updatedToolSuccess);
@@ -630,7 +652,7 @@ export const ReportTemplatesAdmin: React.FC = () => {
                       <Badge variant={template.status === 'ACTIVE' ? 'success' : template.status === 'ARCHIVED' ? 'warning' : 'neutral'}>{statusLabel(template.status)}</Badge>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                      <Badge variant="info">{copy.accessibility}</Badge>
+                      <Badge variant="info">{categoryLabel(template.category, uiLocale)}</Badge>
                       <Badge variant="neutral">v{latestVersion?.versionNumber ?? 0}</Badge>
                       <Badge variant="neutral">{template._count?.assignments ?? 0} {copy.assignmentsCount}</Badge>
                     </div>
@@ -654,7 +676,7 @@ export const ReportTemplatesAdmin: React.FC = () => {
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{copy.toolDetails}</h2>
                         <Badge variant={selectedTemplate.status === 'ACTIVE' ? 'success' : selectedTemplate.status === 'ARCHIVED' ? 'warning' : 'neutral'}>{statusLabel(selectedTemplate.status)}</Badge>
-                        <Badge variant="info">{copy.accessibility}</Badge>
+                        <Badge variant="info">{categoryLabel(selectedTemplate.category, uiLocale)}</Badge>
                       </div>
                       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
                         <Input
@@ -879,7 +901,18 @@ export const ReportTemplatesAdmin: React.FC = () => {
         <form className="space-y-4" onSubmit={handleCreateTemplate}>
           <div className="grid gap-4 md:grid-cols-2">
             <Input label={copy.toolNameInput} value={templateForm.name} onChange={(event) => setTemplateForm((current) => ({ ...current, name: event.target.value }))} placeholder="Accessibility Audit" required />
-            <Input label={copy.toolCodeInput} value={templateForm.code} onChange={(event) => setTemplateForm((current) => ({ ...current, code: event.target.value }))} placeholder="accessibility-audit" required disabled />
+            <Input label={copy.toolCodeInput} value={templateForm.code} onChange={(event) => setTemplateForm((current) => ({ ...current, code: event.target.value }))} placeholder="accessibility-audit" required />
+          </div>
+          <div>
+            <Label>{copy.toolCategoryInput}</Label>
+            <Select
+              value={templateForm.category}
+              onChange={(event) => setTemplateForm((current) => ({ ...current, category: event.target.value as ReportBuilderTemplateCategory }))}
+            >
+              {TEMPLATE_CATEGORIES.map((category) => (
+                <option key={category} value={category}>{categoryLabel(category, uiLocale)}</option>
+              ))}
+            </Select>
           </div>
           <TextArea label={copy.description} value={templateForm.description} onChange={(event) => setTemplateForm((current) => ({ ...current, description: event.target.value }))} />
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">

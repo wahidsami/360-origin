@@ -5,7 +5,7 @@ This tracker reflects the current codebase audit, not the older baseline reports
 ## Current Status
 
 - Missing: login UI SSO entry points, outgoing webhook delivery, email notifications for app events, client latest-updates feed, milestone coverage in calendar, and a real environments backend.
-- Partially implemented: notification preferences enforcement, notifications deep-linking, reporting scope, and roles admin editing.
+- Partially implemented: notification preferences enforcement, notifications deep-linking, report template category support, reporting scope, and roles admin editing.
 
 ## Phase 0 - User-Facing Gaps
 
@@ -32,7 +32,7 @@ This tracker reflects the current codebase audit, not the older baseline reports
 
 ## Phase 3 - Product Parity
 
-- [ ] Restore generic report templates and report generation if that remains in scope.
+- [ ] Restore generic report generation and a full non-accessibility template workflow if that remains in scope.
 - [ ] Finish the remaining finance surfaces that are still hidden or partial.
 - [ ] Align workspace visibility and tab behavior with the documented role model.
 - [ ] Tighten analytics and admin screens to match documented capabilities.
