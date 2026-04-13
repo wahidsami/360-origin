@@ -37,6 +37,19 @@ export class OrgController {
     return this.orgService.getUsage(req.user.orgId);
   }
 
+  @Get('role-permissions')
+  @UseGuards(JwtAuthGuard)
+  getRolePermissions(@Request() req: { user: { orgId: string } }) {
+    return this.orgService.getRolePermissions(req.user.orgId);
+  }
+
+  @Patch('role-permissions')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(GlobalRole.SUPER_ADMIN)
+  updateRolePermissions(@Request() req: { user: { orgId: string } }, @Body() body: { rolePermissions: Record<string, unknown> }) {
+    return this.orgService.updateRolePermissions(req.user.orgId, body.rolePermissions);
+  }
+
   @Get('onboarding-status')
   @UseGuards(JwtAuthGuard)
   getOnboardingStatus(@Request() req: { user: { orgId: string } }) {

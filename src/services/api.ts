@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { Client, Project, User, CreateUserResult, ResendInviteResult, Finding, Milestone, Role, ClientMember, FileAsset, ActivityLog, ProjectUpdate, EnvironmentAccess, Invoice, Contract, CommentThread, ProjectMember, Report, Task, TaskStatus, Discussion, DiscussionReply, ProjectReadiness, ClientReportTemplateAssignment, ReportBuilderTemplate, ReportBuilderTemplateCategory, ReportBuilderTemplateStatus, ReportBuilderTemplateVersion, ProjectReport, ProjectReportEntry, ProjectReportEntryOutcome, ProjectReportEntrySeverity, ProjectReportEntryStatus, ProjectReportStatus, ProjectReportVisibility, ProjectWorkspaceConfigDraft, ClientWorkspaceTemplateAssignment, ProjectWorkspaceTemplate, WorkspaceAudienceType, WorkspaceTemplateStatus } from '../types';
+import { Client, Project, User, CreateUserResult, ResendInviteResult, Finding, Milestone, Role, ClientMember, FileAsset, ActivityLog, ProjectUpdate, EnvironmentAccess, Invoice, Contract, CommentThread, ProjectMember, Report, Task, TaskStatus, Discussion, DiscussionReply, ProjectReadiness, ClientReportTemplateAssignment, ReportBuilderTemplate, ReportBuilderTemplateCategory, ReportBuilderTemplateStatus, ReportBuilderTemplateVersion, ProjectReport, ProjectReportEntry, ProjectReportEntryOutcome, ProjectReportEntrySeverity, ProjectReportEntryStatus, ProjectReportStatus, ProjectReportVisibility, ProjectWorkspaceConfigDraft, ClientWorkspaceTemplateAssignment, ProjectWorkspaceTemplate, WorkspaceAudienceType, WorkspaceTemplateStatus, Org } from '../types';
 import toast from 'react-hot-toast';
 
 const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') + '/api';
@@ -180,12 +180,15 @@ export const api = {
     },
   },
   org: {
-    get: async () => fetchApi('/org'),
+    get: async (): Promise<Org> => fetchApi('/org'),
     create: async (data: { name: string; slug: string; plan?: string; maxUsers?: number; maxProjects?: number; maxStorageMB?: number }) =>
       fetchApi('/org', { method: 'POST', body: JSON.stringify(data) }),
     update: async (data: { name?: string; slug?: string; plan?: string; logo?: string; primaryColor?: string; accentColor?: string; maxUsers?: number; maxProjects?: number; maxStorageMB?: number }) =>
       fetchApi('/org', { method: 'PATCH', body: JSON.stringify(data) }),
     getUsage: async () => fetchApi('/org/usage'),
+    getRolePermissions: async (): Promise<Record<Role, string[]>> => fetchApi('/org/role-permissions'),
+    updateRolePermissions: async (rolePermissions: Record<Role, string[]>) =>
+      fetchApi('/org/role-permissions', { method: 'PATCH', body: JSON.stringify({ rolePermissions }) }),
     getOnboardingStatus: async (): Promise<{ completed: boolean; steps: { profile: boolean; firstProject: boolean; inviteMember: boolean } }> =>
       fetchApi('/org/onboarding-status'),
     dismissOnboarding: async () => fetchApi('/org/onboarding-dismiss', { method: 'PATCH' }),

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { SSOProvider } from '@prisma/client';
+import { GlobalRole, SSOProvider } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service';
 
 export interface CreateOrgDto {
@@ -10,6 +10,40 @@ export interface CreateOrgDto {
   maxProjects?: number;
   maxStorageMB?: number;
 }
+
+const DEFAULT_ROLE_PERMISSIONS: Record<GlobalRole, string[]> = {
+  [GlobalRole.SUPER_ADMIN]: ['VIEW_DASHBOARD', 'VIEW_CLIENTS', 'MANAGE_CLIENTS', 'MANAGE_PROJECTS', 'MANAGE_TASKS', 'MANAGE_TEAM', 'VIEW_FINANCIALS', 'MANAGE_USERS', 'VIEW_ADMIN', 'MANAGE_REPORT_TEMPLATES', 'ASSIGN_REPORT_TEMPLATES', 'MANAGE_WORKSPACE_TEMPLATES', 'ASSIGN_WORKSPACE_TEMPLATES', 'CREATE_PROJECT_REPORTS', 'EDIT_PROJECT_REPORTS', 'EDIT_PROJECT_REPORT_ENTRIES', 'GENERATE_PROJECT_REPORT_EXPORTS', 'PUBLISH_PROJECT_REPORTS', 'VIEW_CLIENT_REPORTS'],
+  [GlobalRole.OPS]: ['VIEW_DASHBOARD', 'VIEW_CLIENTS', 'MANAGE_CLIENTS', 'MANAGE_PROJECTS', 'MANAGE_TASKS', 'MANAGE_TEAM', 'VIEW_FINANCIALS', 'MANAGE_WORKSPACE_TEMPLATES', 'ASSIGN_WORKSPACE_TEMPLATES'],
+  [GlobalRole.PM]: ['VIEW_DASHBOARD', 'VIEW_CLIENTS', 'MANAGE_PROJECTS', 'MANAGE_TASKS', 'MANAGE_TEAM', 'CREATE_PROJECT_REPORTS', 'EDIT_PROJECT_REPORTS', 'EDIT_PROJECT_REPORT_ENTRIES', 'GENERATE_PROJECT_REPORT_EXPORTS', 'PUBLISH_PROJECT_REPORTS'],
+  [GlobalRole.DEV]: ['VIEW_DASHBOARD', 'VIEW_CLIENTS', 'MANAGE_TASKS', 'CREATE_PROJECT_REPORTS', 'EDIT_PROJECT_REPORTS', 'EDIT_PROJECT_REPORT_ENTRIES'],
+  [GlobalRole.QA]: ['VIEW_DASHBOARD', 'VIEW_CLIENTS', 'MANAGE_TASKS', 'CREATE_PROJECT_REPORTS', 'EDIT_PROJECT_REPORTS', 'EDIT_PROJECT_REPORT_ENTRIES', 'GENERATE_PROJECT_REPORT_EXPORTS'],
+  [GlobalRole.FINANCE]: ['VIEW_DASHBOARD', 'VIEW_CLIENTS', 'VIEW_FINANCIALS'],
+  [GlobalRole.CLIENT_OWNER]: ['VIEW_DASHBOARD', 'VIEW_CLIENTS', 'VIEW_FINANCIALS', 'VIEW_CLIENT_REPORTS'],
+  [GlobalRole.CLIENT_MANAGER]: ['VIEW_DASHBOARD', 'VIEW_CLIENTS', 'VIEW_CLIENT_REPORTS'],
+  [GlobalRole.CLIENT_MEMBER]: ['VIEW_DASHBOARD', 'VIEW_CLIENT_REPORTS'],
+  [GlobalRole.VIEWER]: ['VIEW_DASHBOARD'],
+};
+
+const normalizePermissionList = (permissions: unknown): string[] => {
+  if (!Array.isArray(permissions)) return [];
+  return Array.from(new Set(permissions.filter((permission): permission is string => typeof permission === 'string' && permission.trim().length > 0))).sort();
+};
+
+const normalizeRolePermissions = (input: unknown): Record<GlobalRole, string[]> => {
+  const output = { ...DEFAULT_ROLE_PERMISSIONS };
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    return output;
+  }
+
+  for (const role of Object.values(GlobalRole)) {
+    const candidate = (input as Record<string, unknown>)[role];
+    if (candidate !== undefined) {
+      output[role] = normalizePermissionList(candidate);
+    }
+  }
+
+  return output;
+};
 
 @Injectable()
 export class OrgService {
@@ -55,6 +89,25 @@ export class OrgService {
         ...(data.maxStorageMB != null && { maxStorageMB: data.maxStorageMB }),
       },
     });
+  }
+
+  async getRolePermissions(orgId: string) {
+    const org = await this.prisma.org.findUnique({
+      where: { id: orgId },
+      select: { id: true, rolePermissionsJson: true },
+    });
+    if (!org) throw new NotFoundException('Organization not found');
+    return normalizeRolePermissions(org.rolePermissionsJson);
+  }
+
+  async updateRolePermissions(orgId: string, rolePermissions: Record<string, unknown>) {
+    await this.getOrg(orgId);
+    const normalized = normalizeRolePermissions(rolePermissions);
+    await this.prisma.org.update({
+      where: { id: orgId },
+      data: { rolePermissionsJson: normalized },
+    });
+    return normalized;
   }
 
   async getUsage(orgId: string) {

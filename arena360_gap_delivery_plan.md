@@ -13,7 +13,7 @@ This tracker reflects the current codebase audit, not the older baseline reports
 - [x] Make notifications open their linked project/client/finding targets directly from the drawer.
 - [x] Replace the placeholder Testing / Environments tab with a real environment list UI.
 - [x] Decide reporting scope explicitly: keep the accessibility-first flow and standardize on the report builder / accessibility audit workflow.
-- [ ] Decide whether Roles Admin should remain read-only or become editable in this release.
+- [x] Make Roles Admin editable and persist org-specific role default permissions.
 
 ## Phase 1 - Delivery Plumbing
 

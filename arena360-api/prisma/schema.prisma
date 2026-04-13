@@ -233,6 +233,7 @@ model Org {
   logo          String?
   primaryColor  String?  @default("#06b6d4")
   accentColor   String?  @default("#6366f1")
+  rolePermissionsJson Json?
 
   onboardingDismissedAt DateTime?
 

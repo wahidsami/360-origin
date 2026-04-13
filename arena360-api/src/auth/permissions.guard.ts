@@ -1,6 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GlobalRole } from '@prisma/client';
+import { PrismaService } from '../common/prisma.service';
 import { PERMISSIONS_KEY } from './permissions.decorator';
 
 export const ROLE_DEFAULT_PERMISSIONS: Record<GlobalRole, string[]> = {
@@ -18,9 +19,17 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<GlobalRole, string[]> = {
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-  constructor(private reflector: Reflector) { }
+  constructor(
+    private reflector: Reflector,
+    private prisma: PrismaService,
+  ) { }
 
-  canActivate(context: ExecutionContext): boolean {
+  private normalizePermissionList(permissions: unknown): string[] {
+    if (!Array.isArray(permissions)) return [];
+    return Array.from(new Set(permissions.filter((permission): permission is string => typeof permission === 'string' && permission.trim().length > 0))).sort();
+  }
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(PERMISSIONS_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -30,10 +39,20 @@ export class PermissionsGuard implements CanActivate {
 
     const { user } = context.switchToHttp().getRequest();
     if (!user) return false;
+    if (!user.orgId) return false;
 
     if (user.role === GlobalRole.SUPER_ADMIN) return true;
 
-    const rolePerms = ROLE_DEFAULT_PERMISSIONS[user.role as GlobalRole] ?? [];
+    const org = await this.prisma.org.findUnique({
+      where: { id: user.orgId },
+      select: { rolePermissionsJson: true },
+    });
+    const orgRolePermissions = org?.rolePermissionsJson && typeof org.rolePermissionsJson === 'object' && !Array.isArray(org.rolePermissionsJson)
+      ? (org.rolePermissionsJson as Record<string, unknown>)
+      : null;
+    const rolePerms = orgRolePermissions?.[user.role as GlobalRole]
+      ? this.normalizePermissionList(orgRolePermissions[user.role as GlobalRole])
+      : ROLE_DEFAULT_PERMISSIONS[user.role as GlobalRole] ?? [];
     const customPerms = Array.isArray(user.customPermissions) ? user.customPermissions : [];
 
     const has = (perm: string) =>

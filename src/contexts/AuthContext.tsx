@@ -22,6 +22,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [rolePermissions, setRolePermissions] = useState<Record<Role, string[]> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,6 +38,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     initAuth();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadRolePermissions = async () => {
+      if (!user?.orgId) {
+        setRolePermissions(null);
+        return;
+      }
+
+      try {
+        const permissions = await api.org.getRolePermissions();
+        if (!cancelled) {
+          setRolePermissions(permissions);
+        }
+      } catch {
+        if (!cancelled) {
+          setRolePermissions(null);
+        }
+      }
+    };
+
+    loadRolePermissions();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.orgId]);
 
   const login = async (email: string, password?: string) => {
     const result = await api.auth.login(email, password);
@@ -79,14 +106,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const can = (permission: Permission): boolean => {
     if (!user) return false;
-    const rolePerms = ROLE_PERMISSIONS[user.role] || [];
+    const rolePerms = rolePermissions?.[user.role] || ROLE_PERMISSIONS[user.role] || [];
     const customPerms = user.customPermissions || [];
     return rolePerms.includes(permission) || customPerms.includes(permission);
   };
 
   const hasPermission = (permission: string): boolean => {
     if (!user) return false;
-    const rolePerms = ROLE_PERMISSIONS[user.role] || [];
+    const rolePerms = rolePermissions?.[user.role] || ROLE_PERMISSIONS[user.role] || [];
     const customPerms = user.customPermissions || [];
     return rolePerms.includes(permission as Permission) || customPerms.includes(permission);
   };

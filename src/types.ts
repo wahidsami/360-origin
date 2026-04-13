@@ -95,6 +95,17 @@ export interface ClientBillingProfile {
   taxId?: string;
 }
 
+export interface Org {
+  id: string;
+  name: string;
+  slug: string;
+  plan: string;
+  logo?: string | null;
+  primaryColor?: string | null;
+  accentColor?: string | null;
+  rolePermissionsJson?: Record<Role, string[]> | null;
+}
+
 export interface Client {
   id: string;
   name: string;
