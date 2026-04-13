@@ -47,7 +47,7 @@ const emptyEntryDraft = {
   issueDescription: '',
   auditOutcome: 'FAIL' as ProjectReportEntryOutcome,
   severity: 'MEDIUM' as ProjectReportEntrySeverity,
-  category: '' as AccessibilityAuditMainCategory | '',
+  category: '',
   subcategory: '',
   pageUrl: '',
   recommendation: '',
@@ -165,14 +165,14 @@ const toText = (value: unknown): string => {
   return '';
 };
 
-const normalizeCategoryValue = (value: unknown): AccessibilityAuditMainCategory | '' => {
+const normalizeCategoryValue = (value: unknown): string => {
   if (
     typeof value === 'string' &&
     ACCESSIBILITY_AUDIT_MAIN_CATEGORIES.includes(value as AccessibilityAuditMainCategory)
   ) {
-    return value as AccessibilityAuditMainCategory;
+    return value;
   }
-  return '';
+  return typeof value === 'string' ? value : '';
 };
 
 const normalizeWorkspaceEntry = (entry: ProjectReportEntry): ProjectReportEntry => ({
@@ -493,7 +493,8 @@ export const ProjectReportWorkspace: React.FC = () => {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [severityFilter, setSeverityFilter] = React.useState<'ALL' | ProjectReportEntrySeverity>('ALL');
   const [outcomeFilter, setOutcomeFilter] = React.useState<'ALL' | ProjectReportEntryOutcome>('ALL');
-  const [categoryFilter, setCategoryFilter] = React.useState<'ALL' | AccessibilityAuditMainCategory>('ALL');
+  const [categoryFilter, setCategoryFilter] = React.useState<'ALL' | string>('ALL');
+  const isAccessibilityReport = report?.template?.category === 'ACCESSIBILITY';
 
   const canEditEntries = hasPermission(Permission.EDIT_PROJECT_REPORT_ENTRIES);
   const canEditReport = hasPermission(Permission.EDIT_PROJECT_REPORTS);
@@ -512,16 +513,22 @@ export const ProjectReportWorkspace: React.FC = () => {
     ? `\u0627\u0644\u062D\u062F \u0627\u0644\u0623\u0642\u0635\u0649 \u0644\u062D\u062C\u0645 \u0627\u0644\u0641\u064A\u062F\u064A\u0648: ${EVIDENCE_UPLOAD_LIMIT_MB} MB \u0644\u0643\u0644 \u0645\u0644\u0641.`
     : `Max video size: ${EVIDENCE_UPLOAD_LIMIT_MB} MB per file.`;
 
-  const taxonomy = React.useMemo(() => getVersionTaxonomy(report?.templateVersion), [report?.templateVersion]);
-  const availableCategories = React.useMemo(
-    () => taxonomy.categories.filter((category): category is AccessibilityAuditMainCategory => ACCESSIBILITY_AUDIT_MAIN_CATEGORIES.includes(category)),
-    [taxonomy.categories],
+  const taxonomy = React.useMemo(
+    () => (isAccessibilityReport ? getVersionTaxonomy(report?.templateVersion) : { categories: [], subcategories: {} }),
+    [isAccessibilityReport, report?.templateVersion],
   );
-  const subcategoryOptions = entryDraft.category ? taxonomy.subcategories[entryDraft.category] || [] : [];
-  const reportOutputLocale: ProjectReportOutputLocale = report?.outputLocale || getAccessibilityOutputLocale(report?.templateVersion);
+  const availableCategories = React.useMemo(
+    () =>
+      isAccessibilityReport
+        ? taxonomy.categories.filter((category): category is AccessibilityAuditMainCategory => ACCESSIBILITY_AUDIT_MAIN_CATEGORIES.includes(category))
+        : [],
+    [isAccessibilityReport, taxonomy.categories],
+  );
+  const subcategoryOptions = isAccessibilityReport && entryDraft.category ? taxonomy.subcategories[entryDraft.category] || [] : [];
+  const reportOutputLocale: ProjectReportOutputLocale = report?.outputLocale || (isAccessibilityReport ? getAccessibilityOutputLocale(report?.templateVersion) : 'en');
   const entryNeedsSeverity = entryDraft.auditOutcome === 'FAIL' || entryDraft.auditOutcome === 'PARTIAL';
   const entryNeedsRecommendation = entryNeedsSeverity;
-  const entryNeedsSubcategory = entryNeedsSeverity;
+  const entryNeedsSubcategory = isAccessibilityReport && entryNeedsSeverity;
   const isUploadingEvidence = uploadStatus.image === 'uploading' || uploadStatus.video === 'uploading';
 
   const formatFileSize = React.useCallback((bytes: number) => {
@@ -665,7 +672,7 @@ export const ProjectReportWorkspace: React.FC = () => {
       ]);
       setReport(reportData);
       setEntries((entryData || []).map(normalizeWorkspaceEntry));
-      setPreviewLocale(reportData.outputLocale || getAccessibilityOutputLocale(reportData.templateVersion));
+      setPreviewLocale(reportData.outputLocale || (reportData.template?.category === 'ACCESSIBILITY' ? getAccessibilityOutputLocale(reportData.templateVersion) : 'en'));
       await loadApprovals();
     } catch (error) {
       console.error(error);
@@ -688,7 +695,7 @@ export const ProjectReportWorkspace: React.FC = () => {
         issueDescription: entry.issueDescription,
         auditOutcome: getAuditOutcome(entry),
         severity: (entry.severity || 'MEDIUM') as ProjectReportEntrySeverity,
-        category: (entry.category as AccessibilityAuditMainCategory | '') || '',
+        category: entry.category || '',
         subcategory: entry.subcategory || '',
         pageUrl: entry.pageUrl || '',
         recommendation: entry.recommendation || '',
@@ -1257,10 +1264,12 @@ export const ProjectReportWorkspace: React.FC = () => {
               <option value="ALL">{copy.allSeverities}</option>
               {SEVERITIES.map((severity) => <option key={severity} value={severity}>{severityLabel(severity)}</option>)}
             </Select>
-            <Select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value as 'ALL' | AccessibilityAuditMainCategory)}>
-              <option value="ALL">{copy.allCategories}</option>
-              {availableCategories.map((category) => <option key={category} value={category}>{getAccessibilityCategoryLabel(category, uiLocale)}</option>)}
-            </Select>
+            {isAccessibilityReport ? (
+              <Select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value as 'ALL' | string)}>
+                <option value="ALL">{copy.allCategories}</option>
+                {availableCategories.map((category) => <option key={category} value={category}>{getAccessibilityCategoryLabel(category, uiLocale)}</option>)}
+              </Select>
+            ) : null}
           </div>
         </div>
 
@@ -1298,8 +1307,20 @@ export const ProjectReportWorkspace: React.FC = () => {
                         <span className="text-slate-400">-</span>
                       )}
                     </td>
-                    <td className="py-4 pr-4 text-slate-700 dark:text-slate-300">{entry.category ? getAccessibilityCategoryLabel(entry.category, uiLocale) : '-'}</td>
-                    <td className="py-4 pr-4 text-slate-700 dark:text-slate-300">{entry.category && entry.subcategory ? getAccessibilitySubcategoryLabel(entry.category, entry.subcategory, uiLocale) : entry.subcategory || '-'}</td>
+                    <td className="py-4 pr-4 text-slate-700 dark:text-slate-300">
+                      {entry.category
+                        ? isAccessibilityReport
+                          ? getAccessibilityCategoryLabel(entry.category as AccessibilityAuditMainCategory, uiLocale)
+                          : entry.category
+                        : '-'}
+                    </td>
+                    <td className="py-4 pr-4 text-slate-700 dark:text-slate-300">
+                      {entry.category && entry.subcategory
+                        ? isAccessibilityReport
+                          ? getAccessibilitySubcategoryLabel(entry.category as AccessibilityAuditMainCategory, entry.subcategory, uiLocale)
+                          : entry.subcategory
+                        : entry.subcategory || '-'}
+                    </td>
                     <td className="py-4 pr-4">
                       {entry.pageUrl ? <a href={entry.pageUrl} target="_blank" rel="noreferrer" className="font-medium text-cyan-600 hover:underline dark:text-cyan-400">{copy.clickHere}</a> : <span className="text-slate-500">-</span>}
                     </td>
@@ -1443,23 +1464,30 @@ export const ProjectReportWorkspace: React.FC = () => {
 
           <section className="space-y-4">
             <div className="flex items-center gap-3 text-sm font-bold uppercase tracking-[0.28em] text-fuchsia-500">
-              <span className="h-6 w-1 rounded-full bg-fuchsia-500" /> {copy.accessibilityCategory}
+              <span className="h-6 w-1 rounded-full bg-fuchsia-500" /> {isAccessibilityReport ? copy.accessibilityCategory : copy.category}
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Select label={copy.mainCategory} value={entryDraft.category} onChange={(event) => setEntryDraft((current) => ({ ...current, category: event.target.value as AccessibilityAuditMainCategory, subcategory: '' }))} required>
-                <option value="">{copy.selectCategory}</option>
-                {availableCategories.map((category) => <option key={category} value={category}>{getAccessibilityCategoryLabel(category, uiLocale)}</option>)}
-              </Select>
-              <div>
-                {!entryNeedsSubcategory && (
-                  <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">{copy.subcategoryHelpOptional}</p>
-                )}
-                <Select label={entryNeedsSubcategory ? copy.subcategory : copy.subcategoryLabelOptional} value={entryDraft.subcategory} onChange={(event) => setEntryDraft((current) => ({ ...current, subcategory: event.target.value }))} required={entryNeedsSubcategory}>
-                <option value="">{copy.selectSubcategory}</option>
-                {subcategoryOptions.map((subcategory) => <option key={subcategory} value={subcategory}>{getAccessibilitySubcategoryLabel(entryDraft.category, subcategory, uiLocale)}</option>)}
+            {isAccessibilityReport ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                <Select label={copy.mainCategory} value={entryDraft.category} onChange={(event) => setEntryDraft((current) => ({ ...current, category: event.target.value, subcategory: '' }))} required>
+                  <option value="">{copy.selectCategory}</option>
+                  {availableCategories.map((category) => <option key={category} value={category}>{getAccessibilityCategoryLabel(category, uiLocale)}</option>)}
                 </Select>
+                <div>
+                  {!entryNeedsSubcategory && (
+                    <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">{copy.subcategoryHelpOptional}</p>
+                  )}
+                  <Select label={entryNeedsSubcategory ? copy.subcategory : copy.subcategoryLabelOptional} value={entryDraft.subcategory} onChange={(event) => setEntryDraft((current) => ({ ...current, subcategory: event.target.value }))} required={entryNeedsSubcategory}>
+                  <option value="">{copy.selectSubcategory}</option>
+                  {subcategoryOptions.map((subcategory) => <option key={subcategory} value={subcategory}>{getAccessibilitySubcategoryLabel(entryDraft.category as AccessibilityAuditMainCategory, subcategory, uiLocale)}</option>)}
+                  </Select>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                <Input label={copy.mainCategory} value={entryDraft.category} onChange={(event) => setEntryDraft((current) => ({ ...current, category: event.target.value }))} required />
+                <Input label={copy.subcategory} value={entryDraft.subcategory} onChange={(event) => setEntryDraft((current) => ({ ...current, subcategory: event.target.value }))} />
+              </div>
+            )}
           </section>
 
           <section className="space-y-4">

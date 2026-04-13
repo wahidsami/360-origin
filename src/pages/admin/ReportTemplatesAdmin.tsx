@@ -105,6 +105,52 @@ const buildAccessibilityVersionPayload = (
   taxonomyJson: buildAccessibilityTaxonomyPayload(taxonomySelection),
 });
 
+const buildGenericVersionPayload = (locale: AccessibilityAuditOutputLocale) => ({
+  schemaJson: {
+    locale: {
+      primary: locale,
+      secondary: locale === 'en' ? 'ar' : 'en',
+      direction: locale === 'ar' ? 'rtl' : 'ltr',
+    },
+    entryFields: [
+      { key: 'serviceName', label: 'Service Name', labelEn: 'Service Name', labelAr: 'اسم الخدمة', type: 'text', required: true },
+      { key: 'issueTitle', label: 'Title', labelEn: 'Title', labelAr: 'العنوان', type: 'text', required: true },
+      { key: 'issueDescription', label: 'Description', labelEn: 'Description', labelAr: 'الوصف', type: 'textarea', required: true },
+      {
+        key: 'severity',
+        label: 'Severity',
+        labelEn: 'Severity',
+        labelAr: 'الأهمية',
+        type: 'select',
+        required: false,
+        options: [
+          { value: 'HIGH', label: 'High' },
+          { value: 'MEDIUM', label: 'Medium' },
+          { value: 'LOW', label: 'Low' },
+        ],
+      },
+      { key: 'category', label: 'Category', labelEn: 'Category', labelAr: 'التصنيف', type: 'text', required: false },
+      { key: 'subcategory', label: 'Subcategory', labelEn: 'Subcategory', labelAr: 'التصنيف الفرعي', type: 'text', required: false },
+      { key: 'pageUrl', label: 'Reference URL', labelEn: 'Reference URL', labelAr: 'رابط المرجع', type: 'url', required: false },
+      { key: 'recommendation', label: 'Recommendation', labelEn: 'Recommendation', labelAr: 'التوصية', type: 'textarea', required: false },
+    ],
+    tableColumns: ['serviceName', 'issueTitle', 'severity', 'category', 'subcategory', 'pageUrl'],
+  },
+  pdfConfigJson: {
+    locale,
+    alternateLocale: locale === 'en' ? 'ar' : 'en',
+    direction: locale === 'ar' ? 'rtl' : 'ltr',
+    page: { size: 'A4', orientation: 'landscape' },
+    cover: { showClientLogo: true, showAuditorName: true, showReportDate: true },
+    table: { repeatHeader: true, urlLabelEn: 'Click Here', mediaLabelImageEn: 'View Image', mediaLabelVideoEn: 'View Video' },
+  },
+  aiConfigJson: {
+    enabled: true,
+    sections: { intro: true, statistics: true, recommendationSummary: true },
+    prompts: { introStyle: 'formal_report', recommendationTone: 'clear_and_client_ready' },
+  },
+});
+
 const sortVersions = (versions: ReportBuilderTemplateVersion[]) => [...versions].sort((a, b) => b.versionNumber - a.versionNumber);
 const prettyDate = (value?: string | null, locale = 'en') => (value ? new Date(value).toLocaleString(locale) : locale === 'ar' ? 'غير محدد' : 'Not set');
 
@@ -477,26 +523,32 @@ export const ReportTemplatesAdmin: React.FC = () => {
   const handleCreateVersion = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedTemplate) return;
-    const taxonomyPayload = buildAccessibilityTaxonomyPayload(versionTaxonomySelection);
-    if (taxonomyPayload.accessibilityCategories.length === 0) {
-      toast.error(copy.emptyMainCategoryError);
-      return;
-    }
-
-    const hasEmptyCategory = taxonomyPayload.accessibilityCategories.some(
-      (category) => (taxonomyPayload.accessibilitySubcategories[category.value] || []).length === 0,
-    );
-
-    if (hasEmptyCategory) {
-      toast.error(copy.emptySubcategoryError);
-      return;
-    }
-
     try {
-      await api.reportBuilderAdmin.createTemplateVersion(
-        selectedTemplate.id,
-        buildAccessibilityVersionPayload(versionLocale, versionTaxonomySelection),
-      );
+      const payload =
+        selectedTemplate.category === 'ACCESSIBILITY'
+          ? (() => {
+              const taxonomyPayload = buildAccessibilityTaxonomyPayload(versionTaxonomySelection);
+              if (taxonomyPayload.accessibilityCategories.length === 0) {
+                toast.error(copy.emptyMainCategoryError);
+                return null;
+              }
+
+              const hasEmptyCategory = taxonomyPayload.accessibilityCategories.some(
+                (category) => (taxonomyPayload.accessibilitySubcategories[category.value] || []).length === 0,
+              );
+
+              if (hasEmptyCategory) {
+                toast.error(copy.emptySubcategoryError);
+                return null;
+              }
+
+              return buildAccessibilityVersionPayload(versionLocale, versionTaxonomySelection);
+            })()
+          : buildGenericVersionPayload(versionLocale);
+
+      if (!payload) return;
+
+      await api.reportBuilderAdmin.createTemplateVersion(selectedTemplate.id, payload);
       await loadTemplates(selectedTemplate.id);
       setVersionModalOpen(false);
       toast.success(copy.draftedVersionSuccess);
@@ -954,60 +1006,66 @@ export const ReportTemplatesAdmin: React.FC = () => {
               {copy.findingsSupport}
             </div>
           </div>
-          <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h4 className="text-sm font-semibold text-slate-900 dark:text-white">{copy.categoryAvailability}</h4>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  {copy.categoryAvailabilityHelp}
-                </p>
+          {selectedTemplate?.category === 'ACCESSIBILITY' ? (
+            <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white">{copy.categoryAvailability}</h4>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {copy.categoryAvailabilityHelp}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={() => setVersionTaxonomySelection(createDefaultAccessibilityTaxonomySelection())}>
+                    {copy.includeAll}
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button type="button" size="sm" variant="outline" onClick={() => setVersionTaxonomySelection(createDefaultAccessibilityTaxonomySelection())}>
-                  {copy.includeAll}
-                </Button>
-              </div>
-            </div>
 
-            <div className="mt-4 grid gap-4 lg:grid-cols-2">
-              {ACCESSIBILITY_AUDIT_MAIN_CATEGORIES.map((category) => {
-                const categorySelection = versionTaxonomySelection[category] || {};
-                const enabledCount = Object.values(categorySelection).filter(Boolean).length;
-                const categoryEnabled = enabledCount > 0;
+              <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                {ACCESSIBILITY_AUDIT_MAIN_CATEGORIES.map((category) => {
+                  const categorySelection = versionTaxonomySelection[category] || {};
+                  const enabledCount = Object.values(categorySelection).filter(Boolean).length;
+                  const categoryEnabled = enabledCount > 0;
 
-                return (
-                  <div key={getAccessibilityCategoryLabel(category, uiLocale)} className={`rounded-2xl border p-4 ${categoryEnabled ? 'border-cyan-400/30 bg-cyan-500/5' : 'border-slate-200 bg-slate-50/60 dark:border-slate-800 dark:bg-slate-900/40'}`}>
-                    <label className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-slate-900 dark:text-white">{getAccessibilityCategoryLabel(category, uiLocale)}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">{enabledCount} {copy.subcategoriesEnabled}</p>
+                  return (
+                    <div key={getAccessibilityCategoryLabel(category, uiLocale)} className={`rounded-2xl border p-4 ${categoryEnabled ? 'border-cyan-400/30 bg-cyan-500/5' : 'border-slate-200 bg-slate-50/60 dark:border-slate-800 dark:bg-slate-900/40'}`}>
+                      <label className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-slate-900 dark:text-white">{getAccessibilityCategoryLabel(category, uiLocale)}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{enabledCount} {copy.subcategoriesEnabled}</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={categoryEnabled}
+                          onChange={(event) => toggleCategorySelection(category, event.target.checked)}
+                          className="h-4 w-4 rounded border-slate-300"
+                        />
+                      </label>
+
+                      <div className="mt-3 grid gap-2">
+                        {Object.keys(categorySelection).map((subcategory) => (
+                          <label key={getAccessibilitySubcategoryLabel(category as any, subcategory, uiLocale)} className={`flex items-center gap-3 rounded-xl border px-3 py-2 text-sm ${categorySelection[subcategory] ? 'border-cyan-400/30 bg-cyan-500/5 text-slate-800 dark:text-slate-100' : 'border-slate-200 text-slate-500 dark:border-slate-800 dark:text-slate-400'}`}>
+                            <input
+                              type="checkbox"
+                              checked={categorySelection[subcategory]}
+                              onChange={(event) => toggleSubcategorySelection(category, subcategory, event.target.checked)}
+                              className="h-4 w-4 rounded border-slate-300"
+                            />
+                            <span>{getAccessibilitySubcategoryLabel(category as any, subcategory, uiLocale)}</span>
+                          </label>
+                        ))}
                       </div>
-                      <input
-                        type="checkbox"
-                        checked={categoryEnabled}
-                        onChange={(event) => toggleCategorySelection(category, event.target.checked)}
-                        className="h-4 w-4 rounded border-slate-300"
-                      />
-                    </label>
-
-                    <div className="mt-3 grid gap-2">
-                      {Object.keys(categorySelection).map((subcategory) => (
-                        <label key={getAccessibilitySubcategoryLabel(category as any, subcategory, uiLocale)} className={`flex items-center gap-3 rounded-xl border px-3 py-2 text-sm ${categorySelection[subcategory] ? 'border-cyan-400/30 bg-cyan-500/5 text-slate-800 dark:text-slate-100' : 'border-slate-200 text-slate-500 dark:border-slate-800 dark:text-slate-400'}`}>
-                          <input
-                            type="checkbox"
-                            checked={categorySelection[subcategory]}
-                            onChange={(event) => toggleSubcategorySelection(category, subcategory, event.target.checked)}
-                            className="h-4 w-4 rounded border-slate-300"
-                          />
-                          <span>{getAccessibilitySubcategoryLabel(category as any, subcategory, uiLocale)}</span>
-                        </label>
-                      ))}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="rounded-2xl border border-slate-200 p-4 text-sm text-slate-600 dark:border-slate-800 dark:text-slate-400">
+              This template uses a generic report structure. The version will carry the base field layout and no fixed taxonomy.
+            </div>
+          )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setVersionModalOpen(false)}>{copy.cancel}</Button>
             <Button type="submit">{copy.createVersion}</Button>

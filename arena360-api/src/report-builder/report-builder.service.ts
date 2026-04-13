@@ -243,7 +243,18 @@ export class ReportBuilderService {
       rowDataJson?: Record<string, unknown> | null;
     },
   ) {
-    if (report.template?.category !== 'ACCESSIBILITY') return;
+    if (report.template?.category !== 'ACCESSIBILITY') {
+      if (!input.serviceName?.trim()) {
+        throw new BadRequestException('Service name is required for report entries.');
+      }
+      if (!input.issueTitle?.trim()) {
+        throw new BadRequestException('Title is required for report entries.');
+      }
+      if (!input.issueDescription?.trim()) {
+        throw new BadRequestException('Description is required for report entries.');
+      }
+      return;
+    }
 
     const auditOutcome = this.getAuditOutcome(input.rowDataJson);
     const requiresSeverity = auditOutcome === 'FAIL' || auditOutcome === 'PARTIAL';
@@ -932,6 +943,63 @@ export class ReportBuilderService {
   private buildSampleTemplatePreviewData(template: any, version: any, localeOverride?: string) {
     const { locale, direction } = this.getPreviewLocaleConfig(version, localeOverride);
     const labels = this.getPreviewLabels(locale);
+    if (template?.category !== 'ACCESSIBILITY') {
+      const projectName = locale === 'ar' ? 'مشروع تجريبي' : 'Sample Project';
+      const clientName = locale === 'ar' ? 'عميل تجريبي' : 'Sample Client';
+      const performerName = locale === 'ar' ? 'فريق التنفيذ' : 'Delivery Team';
+      const reportTitle = locale === 'ar' ? `${this.normalizeDisplayText(template.name)} - معاينة` : `${this.normalizeDisplayText(template.name)} - Sample Preview`;
+      return {
+        report: {
+          title: reportTitle,
+          description: locale === 'ar'
+            ? 'توضح هذه المعاينة الشكل العام للقالب قبل تعيينه للعميل.'
+            : 'This preview demonstrates the overall template layout before it is assigned to a client.',
+          client: { name: clientName, logo: null },
+          project: { name: projectName },
+          template: { name: this.normalizeDisplayText(template.name) },
+          templateVersion: version,
+          performedBy: { name: performerName },
+          summaryJson: {
+            introduction: locale === 'ar'
+              ? 'تسمح هذه المعاينة للإدارة بمراجعة شكل القالب ومحتواه قبل النشر.'
+              : 'This preview lets admins review the template shape and content before publishing.',
+            statisticsSummary: locale === 'ar'
+              ? 'تُعرض هنا الأرقام والعناوين الأساسية باستخدام الحقول المحددة داخل القالب.'
+              : 'Key statistics and headings are rendered here using the fields defined in the template.',
+            recommendationsSummary: locale === 'ar'
+              ? 'تُستخدم هذه البيانات التجريبية فقط لتوضيح طريقة العرض النهائية.'
+              : 'These sample values are only for illustrating the final rendered layout.',
+          },
+        },
+        entries: [
+          {
+            serviceName: locale === 'ar' ? 'لوحة القيادة' : 'Dashboard',
+            issueTitle: locale === 'ar' ? 'المراجعة الدورية ناجحة' : 'Routine review completed',
+            issueDescription: locale === 'ar' ? 'يتم عرض هذه النتيجة كعنصر إيجابي في القالب.' : 'This item is shown as a positive entry in the template.',
+            category: locale === 'ar' ? 'العمليات' : 'Operations',
+            subcategory: locale === 'ar' ? 'المراجعة' : 'Review',
+            pageUrl: 'https://example.com',
+            recommendation: '',
+            rowDataJson: { auditOutcome: 'PASS' },
+            media: [],
+          },
+          {
+            serviceName: locale === 'ar' ? 'تقارير العملاء' : 'Client Reports',
+            issueTitle: locale === 'ar' ? 'عنصر يحتاج متابعة' : 'Item requiring follow-up',
+            issueDescription: locale === 'ar' ? 'هذا المثال يوضح كيف تظهر الملاحظات والحقول الإضافية.' : 'This example demonstrates how findings and additional fields appear.',
+            severity: 'MEDIUM',
+            category: locale === 'ar' ? 'المحتوى' : 'Content',
+            subcategory: locale === 'ar' ? 'تحديث المحتوى' : 'Content update',
+            pageUrl: 'https://example.com/client',
+            recommendation: locale === 'ar' ? 'تحديث الوصف وإضافة التفاصيل المطلوبة.' : 'Update the description and add the required details.',
+            rowDataJson: { auditOutcome: 'FAIL' },
+            media: [],
+          },
+        ],
+        locale,
+        direction,
+      };
+    }
     const categoryValue =
       version?.taxonomyJson?.accessibilityCategories?.[0]?.value || ACCESSIBILITY_AUDIT_MAIN_CATEGORIES[0];
     const subcategoryValue =
