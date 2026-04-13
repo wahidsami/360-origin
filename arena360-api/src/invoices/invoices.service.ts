@@ -7,6 +7,8 @@ import { ConfigService } from '@nestjs/config';
 import { AutomationService } from '../automation/automation.service';
 import { AutomationTriggerEntity, AutomationTriggerEvent } from '@prisma/client';
 import { SlaService } from '../sla/sla.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { ActivityService } from '../activity/activity.service';
 
 @Injectable()
 export class InvoicesService {
@@ -15,7 +17,47 @@ export class InvoicesService {
         private config: ConfigService,
         private automation: AutomationService,
         private sla: SlaService,
+        private notifications: NotificationsService,
+        private activity: ActivityService,
     ) { }
+
+    private readonly financeNoticeRoles = ['SUPER_ADMIN', 'OPS', 'PM', 'FINANCE'];
+
+    private async getProjectRecipientIds(projectId: string, roles: string[] = this.financeNoticeRoles) {
+        const members = await this.prisma.projectMember.findMany({
+            where: { projectId, role: { in: roles as any } },
+            select: { userId: true, user: { select: { isActive: true } } },
+        });
+        return [...new Set(members.filter((member) => member.user?.isActive !== false).map((member) => member.userId))];
+    }
+
+    private async notifyFinanceTeam(projectId: string, orgId: string, title: string, body: string, linkUrl: string) {
+        const recipientIds = await this.getProjectRecipientIds(projectId);
+        for (const userId of recipientIds) {
+            await this.notifications.create({
+                orgId,
+                userId,
+                type: 'INVOICE_OVERDUE',
+                title,
+                body,
+                linkUrl,
+                entityType: 'invoice',
+            }).catch(() => { });
+        }
+    }
+
+    private async logActivity(orgId: string, projectId: string, action: string, entityId: string, description: string, metadata?: Record<string, unknown>) {
+        await this.activity.create({
+            orgId,
+            projectId,
+            userId: 'system',
+            action,
+            entityType: 'invoice',
+            entityId,
+            description,
+            metadata,
+        }).catch(() => { });
+    }
 
     async findAll(projectId: string, user: UserWithRoles) {
         // Verify project exists and user has access
@@ -122,6 +164,15 @@ export class InvoicesService {
                 }
             }
         });
+
+        await this.logActivity(user.orgId, projectId, 'invoice.created', invoice.id, `Invoice "${invoice.invoiceNumber}" created.`, {
+            invoiceId: invoice.id,
+            status: invoice.status,
+            amount: invoice.amount,
+        });
+        if (invoice.status !== 'DRAFT') {
+            await this.notifyFinanceTeam(projectId, user.orgId, 'Invoice created', `Invoice "${invoice.invoiceNumber}" was created with status ${invoice.status}.`, `/app/projects/${projectId}?tab=financials`);
+        }
 
         if (invoice.status === 'ISSUED' || invoice.status === 'OVERDUE') {
             this.sla.startOrUpdateTracker(invoice.orgId, 'INVOICE', invoice.id).catch(() => { });
@@ -245,6 +296,12 @@ export class InvoicesService {
             }
         });
 
+        await this.logActivity(user.orgId, projectId, 'invoice.updated', updated.id, `Invoice "${updated.invoiceNumber}" updated.`, {
+            invoiceId: updated.id,
+            previousStatus: invoice.status,
+            nextStatus: updated.status,
+        });
+
         const entity = { ...updated, projectId };
 
         // Trigger automation status changed
@@ -265,6 +322,13 @@ export class InvoicesService {
             } else {
                 this.sla.markMet(user.orgId, 'INVOICE', invoiceId).catch(() => { });
             }
+            await this.notifyFinanceTeam(
+                projectId,
+                user.orgId,
+                'Invoice status changed',
+                `Invoice "${updated.invoiceNumber}" moved from ${invoice.status} to ${updated.status}.`,
+                `/app/projects/${projectId}?tab=financials`,
+            );
         }
 
         // Trigger automation updated
@@ -300,6 +364,11 @@ export class InvoicesService {
             throw new ForbiddenException('Only FINANCE, PM, OPS, or SUPER_ADMIN can delete invoices');
         }
 
+        await this.logActivity(user.orgId, projectId, 'invoice.deleted', invoiceId, `Invoice "${invoice.invoiceNumber}" deleted.`, {
+            invoiceId,
+            status: invoice.status,
+        });
+        await this.notifyFinanceTeam(projectId, user.orgId, 'Invoice deleted', `Invoice "${invoice.invoiceNumber}" was deleted.`, `/app/projects/${projectId}?tab=financials`);
         this.sla.markMet(user.orgId, 'INVOICE', invoiceId).catch(() => { });
         await this.prisma.invoice.delete({
             where: { id: invoiceId }
@@ -342,6 +411,11 @@ export class InvoicesService {
             where: { id: invoice.id },
             data: { status: 'PAID', paidAt: new Date() },
         });
+        await this.logActivity(invoice.orgId, invoice.projectId, 'invoice.paid', invoice.id, `Invoice "${invoice.invoiceNumber}" marked as paid.`, {
+            invoiceId: invoice.id,
+            paymentIntentId,
+        });
+        await this.notifyFinanceTeam(invoice.projectId, invoice.orgId, 'Invoice paid', `Invoice "${invoice.invoiceNumber}" was paid successfully.`, `/app/projects/${invoice.projectId}?tab=financials`);
         this.sla.markMet(invoice.orgId, 'INVOICE', invoice.id).catch(() => { });
     }
 }

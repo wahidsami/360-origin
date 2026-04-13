@@ -4,11 +4,60 @@ import { PrismaService } from '../common/prisma.service';
 import { ScopeUtils, UserWithRoles } from '../common/utils/scope.utils';
 import { CreateRecurringTaskDto } from './dto/create-recurring-task.dto';
 import { UpdateRecurringTaskDto } from './dto/update-recurring-task.dto';
-import { TaskPriority } from '@prisma/client';
+import { TaskPriority, AutomationTriggerEntity, AutomationTriggerEvent } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
+import { ActivityService } from '../activity/activity.service';
+import { AutomationService } from '../automation/automation.service';
+import { SlaService } from '../sla/sla.service';
 
 @Injectable()
 export class RecurringTasksService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+    private activity: ActivityService,
+    private automation: AutomationService,
+    private sla: SlaService,
+  ) {}
+
+  private readonly internalNoticeRoles = ['SUPER_ADMIN', 'OPS', 'PM', 'DEV', 'QA', 'FINANCE'];
+
+  private async getProjectRecipientIds(projectId: string, roles?: string[]) {
+    const allowedRoles = roles ?? this.internalNoticeRoles;
+    const members = await this.prisma.projectMember.findMany({
+      where: { projectId, role: { in: allowedRoles as any } },
+      select: { userId: true, user: { select: { isActive: true } } },
+    });
+    return [...new Set(members.filter((member) => member.user?.isActive !== false).map((member) => member.userId))];
+  }
+
+  private async notifyProjectRecipients(projectId: string, orgId: string, title: string, body: string, linkUrl: string) {
+    const recipientIds = await this.getProjectRecipientIds(projectId);
+    for (const userId of recipientIds) {
+      await this.notifications.create({
+        orgId,
+        userId,
+        type: 'TASK_ASSIGNED',
+        title,
+        body,
+        linkUrl,
+        entityType: 'task',
+      }).catch(() => {});
+    }
+  }
+
+  private async logActivity(orgId: string, projectId: string, action: string, entityId: string, description: string, metadata?: Record<string, unknown>) {
+    await this.activity.create({
+      orgId,
+      projectId,
+      userId: 'system',
+      action,
+      entityType: 'task',
+      entityId,
+      description,
+      metadata,
+    }).catch(() => {});
+  }
 
   async findAll(projectId: string, user: UserWithRoles) {
     await this.ensureProjectAccess(projectId, user);
@@ -31,7 +80,7 @@ export class RecurringTasksService {
     const project = await this.ensureProjectAccess(projectId, user);
     const priority = (dto.priority?.toUpperCase().replace(/-/g, '_') || 'MEDIUM') as TaskPriority;
     const nextRunAt = dto.nextRunAt ? new Date(dto.nextRunAt) : new Date();
-    return this.prisma.recurringTaskTemplate.create({
+    const template = await this.prisma.recurringTaskTemplate.create({
       data: {
         projectId,
         orgId: project.orgId,
@@ -43,6 +92,11 @@ export class RecurringTasksService {
         isActive: true,
       },
     });
+    await this.logActivity(project.orgId, projectId, 'recurring-task-template.created', template.id, `Recurring task template "${template.title}" created.`, {
+      templateId: template.id,
+      nextRunAt: template.nextRunAt.toISOString(),
+    });
+    return template;
   }
 
   async update(projectId: string, templateId: string, user: UserWithRoles, dto: UpdateRecurringTaskDto) {
@@ -60,19 +114,28 @@ export class RecurringTasksService {
     if (dto.nextRunAt !== undefined) data.nextRunAt = new Date(dto.nextRunAt);
     if (dto.isActive !== undefined) data.isActive = dto.isActive;
 
-    return this.prisma.recurringTaskTemplate.update({
+    const updated = await this.prisma.recurringTaskTemplate.update({
       where: { id: templateId },
       data,
     });
+    await this.logActivity(project.orgId, projectId, 'recurring-task-template.updated', updated.id, `Recurring task template "${updated.title}" updated.`, {
+      templateId: updated.id,
+      isActive: updated.isActive,
+    });
+    return updated;
   }
 
   async remove(projectId: string, templateId: string, user: UserWithRoles) {
-    await this.ensureProjectAccess(projectId, user);
+    const project = await this.ensureProjectAccess(projectId, user);
     const template = await this.prisma.recurringTaskTemplate.findFirst({
       where: { id: templateId, projectId },
     });
     if (!template) throw new NotFoundException('Recurring task template not found');
-    return this.prisma.recurringTaskTemplate.delete({ where: { id: templateId } });
+    const removed = await this.prisma.recurringTaskTemplate.delete({ where: { id: templateId } });
+    await this.logActivity(project.orgId, projectId, 'recurring-task-template.deleted', removed.id, `Recurring task template "${removed.title}" deleted.`, {
+      templateId: removed.id,
+    });
+    return removed;
   }
 
   /** Cron: every minute, create tasks from due templates and advance nextRunAt */
@@ -85,9 +148,11 @@ export class RecurringTasksService {
     });
     for (const t of due) {
       try {
+        let createdTask: { id: string; title: string; status: string; priority: string; assigneeId?: string | null } | null = null;
+        let nextRun: Date | null = null;
         await this.prisma.$transaction(async (tx) => {
           const runAt = t.nextRunAt;
-          await tx.task.create({
+          createdTask = await tx.task.create({
             data: {
               projectId: t.projectId,
               title: t.title,
@@ -97,12 +162,48 @@ export class RecurringTasksService {
               sourceRecurringId: t.id,
             },
           });
-          const nextRun = this.computeNextRun(runAt, t.recurrenceRule as { frequency: string; interval?: number; weekday?: number });
+          nextRun = this.computeNextRun(runAt, t.recurrenceRule as { frequency: string; interval?: number; weekday?: number });
           await tx.recurringTaskTemplate.update({
             where: { id: t.id },
             data: { lastRunAt: runAt, nextRunAt: nextRun },
           });
         });
+        if (!createdTask || !nextRun) continue;
+
+        const projectLink = `/app/projects/${t.projectId}?tab=recurring`;
+        await this.logActivity(
+          t.project.orgId,
+          t.projectId,
+          'recurring-task.generated',
+          createdTask.id,
+          `Recurring task "${createdTask.title}" generated from template "${t.title}".`,
+          { templateId: t.id, taskId: createdTask.id, nextRunAt: nextRun.toISOString() },
+        );
+
+        await this.sla.startOrUpdateTracker(t.project.orgId, 'TASK', createdTask.id, { clientId: t.project.clientId }).catch(() => {});
+
+        await this.automation.evaluateRules({
+          orgId: t.project.orgId,
+          entityType: AutomationTriggerEntity.TASK,
+          entityId: createdTask.id,
+          event: AutomationTriggerEvent.CREATED,
+          entity: {
+            id: createdTask.id,
+            projectId: t.projectId,
+            title: createdTask.title,
+            status: createdTask.status,
+            priority: createdTask.priority,
+            assigneeId: createdTask.assigneeId ?? null,
+          },
+        }).catch(() => {});
+
+        await this.notifyProjectRecipients(
+          t.projectId,
+          t.project.orgId,
+          'Recurring task generated',
+          `Task "${createdTask.title}" was created from the recurring template "${t.title}".`,
+          projectLink,
+        );
       } catch (err) {
         // Log but don't fail other templates
         console.error(`RecurringTasksService: failed to process template ${t.id}`, err);
