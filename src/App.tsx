@@ -26,6 +26,7 @@ const ProjectReportWorkspace = React.lazy(() => import('./pages/ProjectReportWor
 const Settings = React.lazy(() => import('./pages/Settings'));
 const MyWork = React.lazy(() => import('./pages/MyWork').then((module) => ({ default: module.MyWork })));
 const Reports = React.lazy(() => import('./pages/Reports').then((module) => ({ default: module.Reports })));
+const FinanceDashboard = React.lazy(() => import('./pages/dashboard/FinanceDashboard').then((module) => ({ default: module.FinanceDashboard })));
 const FindingsList = React.lazy(() => import('./pages/findings/FindingsList').then((module) => ({ default: module.FindingsList })));
 const FindingDetails = React.lazy(() => import('./pages/findings/FindingDetails').then((module) => ({ default: module.FindingDetails })));
 const UsersAdmin = React.lazy(() => import('./pages/admin/UsersAdmin'));
@@ -37,6 +38,12 @@ const Analytics = React.lazy(() => import('./pages/Analytics'));
 const Automations = React.lazy(() => import('./pages/Automations'));
 const Integrations = React.lazy(() => import('./pages/Integrations'));
 const Wiki = React.lazy(() => import('./pages/Wiki'));
+
+const FinanceRoute: React.FC = () => {
+  const { user } = useAuth();
+  if (!user) return null;
+  return <FinanceDashboard role={user.role} />;
+};
 
 // Protected Route Wrapper
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -111,6 +118,7 @@ const App: React.FC = () => {
               </Route>
 
               <Route path="reports" element={<Reports />} />
+              <Route path="finance" element={<RoleProtectedRoute allowedRoles={[Role.SUPER_ADMIN, Role.OPS, Role.PM, Role.FINANCE]}><FinanceRoute /></RoleProtectedRoute>} />
               <Route path="files" element={<Navigate to="/app/dashboard#shared-files" replace />} />
 
               <Route path="findings">

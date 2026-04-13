@@ -4,7 +4,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 import {
   LayoutDashboard, Users, Briefcase, FileText, ShieldCheck,
-  Settings, Bell, Search, LogOut, Menu, X, ChevronRight, Globe, ClipboardList, Calendar, History,
+  Settings, Bell, Search, LogOut, Menu, X, ChevronRight, Globe, ClipboardList, Calendar, History, DollarSign,
   Sparkles, BookOpen, BarChart3, Workflow, Link2
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -194,6 +194,10 @@ export const Layout: React.FC = () => {
 
   if (user && [Role.SUPER_ADMIN, Role.OPS, Role.PM, Role.DEV, Role.QA, Role.FINANCE, Role.CLIENT_OWNER, Role.CLIENT_MANAGER, Role.CLIENT_MEMBER].includes(user.role)) {
     primaryMenuItems.push({ to: '/app/reports', icon: FileText, label: t('reports') });
+  }
+
+  if (user && [Role.SUPER_ADMIN, Role.OPS, Role.PM, Role.FINANCE].includes(user.role)) {
+    primaryMenuItems.push({ to: '/app/finance', icon: DollarSign, label: t('financials') });
   }
 
   const knowledgeMenuItems: Array<{ to: string; icon: any; label: string }> = [];
