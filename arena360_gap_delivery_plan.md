@@ -2,6 +2,7 @@
 
 This tracker reflects the current codebase audit, not the older baseline reports.
 For go-live readiness, see [arena360_production_readiness_checklist.md](./arena360_production_readiness_checklist.md).
+For the step-by-step completion path, see [arena360_100_percent_completion_plan.md](./arena360_100_percent_completion_plan.md).
 
 ## Current Status
 
