@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
@@ -28,7 +28,7 @@ export class ReportGeneratorService {
         findings: (type === 'TECHNICAL' || type === 'COMPLIANCE') ? { where: { deletedAt: null }, select: { title: true, severity: true, status: true } } : false,
       },
     });
-    if (!project) throw new Error('Project not found');
+    if (!project) throw new NotFoundException('Project not found');
 
     const pptx = new PptxGenJS();
     pptx.title = title;
@@ -87,7 +87,7 @@ export class ReportGeneratorService {
         findings: (type === 'TECHNICAL' || type === 'COMPLIANCE') ? { where: { deletedAt: null }, select: { title: true, severity: true, status: true } } : false,
       },
     });
-    if (!project) throw new Error('Project not found');
+    if (!project) throw new NotFoundException('Project not found');
 
     const dir = this.ensureDir();
     const filename = `${reportId}.pdf`;

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadGatewayException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 import { PrismaService } from '../common/prisma.service';
@@ -209,7 +209,7 @@ export class EmailService {
                 });
                 if (response.error) {
                     this.logger.error(`Failed to send invite email to ${to}: ${response.error.message}`);
-                    throw new Error(response.error.message || 'Invite email send failed');
+                    throw new BadGatewayException(response.error.message || 'Invite email send failed');
                 }
                 this.logger.log(`Invite email sent to ${to}`);
             } catch (error) {
@@ -254,7 +254,7 @@ export class EmailService {
                 });
                 if (response.error) {
                     this.logger.error(`Failed to send password reset email to ${to}: ${response.error.message}`);
-                    throw new Error(response.error.message || 'Password reset email send failed');
+                    throw new BadGatewayException(response.error.message || 'Password reset email send failed');
                 }
                 this.logger.log(`Password reset email sent to ${to}`);
             } catch (error) {
@@ -291,7 +291,7 @@ export class EmailService {
                 });
                 if (response.error) {
                     this.logger.error(`Failed to send notification email to ${to}: ${response.error.message}`);
-                    throw new Error(response.error.message || 'Notification email send failed');
+                    throw new BadGatewayException(response.error.message || 'Notification email send failed');
                 }
                 this.logger.log(`Notification email sent to ${to}`);
             } catch (error) {

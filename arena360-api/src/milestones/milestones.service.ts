@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { ScopeUtils, UserWithRoles } from '../common/utils/scope.utils';
 import { CreateMilestoneDto, UpdateMilestoneDto } from './dto/milestone.dto';
@@ -90,10 +90,10 @@ export class MilestonesService {
         if (data.dueDate) {
             dueDate = new Date(data.dueDate);
             if (isNaN(dueDate.getTime())) {
-                throw new Error('Invalid dueDate format');
+                throw new BadRequestException('Invalid dueDate format');
             }
         } else {
-            throw new Error('dueDate is required');
+            throw new BadRequestException('dueDate is required');
         }
 
         // Strip extra fields

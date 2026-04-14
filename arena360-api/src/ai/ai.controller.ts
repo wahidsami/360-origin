@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
+import { BadRequestException, Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { AiService } from './ai.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { ChatDto, ProjectContextDto, FindingContextDto } from './dto/ai.dto';
@@ -13,19 +13,19 @@ export class AiController {
 
   @Post('project/summary')
   async projectSummary(@Request() req: { user: { orgId: string } }, @Body() body: ProjectContextDto) {
-    if (!body.projectId) throw new Error('projectId required');
+    if (!body.projectId) throw new BadRequestException('projectId required');
     return { summary: await this.aiService.generateProjectSummary(body.projectId, req.user.orgId) };
   }
 
   @Post('project/suggest-tasks')
   async suggestTasks(@Request() req: { user: { orgId: string } }, @Body() body: ProjectContextDto) {
-    if (!body.projectId) throw new Error('projectId required');
+    if (!body.projectId) throw new BadRequestException('projectId required');
     return { suggestions: await this.aiService.suggestTasks(body.projectId, req.user.orgId) };
   }
 
   @Post('project/status-report')
   async statusReport(@Request() req: { user: { orgId: string } }, @Body() body: ProjectContextDto) {
-    if (!body.projectId) throw new Error('projectId required');
+    if (!body.projectId) throw new BadRequestException('projectId required');
     return { report: await this.aiService.generateStatusReport(body.projectId, req.user.orgId) };
   }
 

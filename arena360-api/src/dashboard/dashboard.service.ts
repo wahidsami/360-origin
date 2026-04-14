@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { ScopeUtils, UserWithRoles } from '../common/utils/scope.utils';
 
@@ -47,7 +47,7 @@ export class DashboardService {
         // Admin dashboard: internal role only
         const internalRoles = ['SUPER_ADMIN', 'OPS', 'PM', 'DEV', 'QA'];
         if (!internalRoles.includes(user.role)) {
-            throw new Error('Admin dashboard is for internal staff only');
+            throw new ForbiddenException('Admin dashboard is for internal staff only');
         }
 
         // Aggregate stats within user's org
@@ -262,7 +262,7 @@ export class DashboardService {
     async getDevStats(user: UserWithRoles) {
         const allowedRoles = ['DEV', 'QA'];
         if (!allowedRoles.includes(user.role)) {
-            throw new Error('Developer dashboard is for DEV/QA users only');
+            throw new ForbiddenException('Developer dashboard is for DEV/QA users only');
         }
 
         // Dev dashboard: tasks assigned to this developer
@@ -318,7 +318,7 @@ export class DashboardService {
         // Finance dashboard: internal finance role
         const financeRoles = ['SUPER_ADMIN', 'OPS', 'FINANCE'];
         if (!financeRoles.includes(user.role)) {
-            throw new Error('Finance dashboard is for finance staff only');
+            throw new ForbiddenException('Finance dashboard is for finance staff only');
         }
 
         const [
@@ -425,7 +425,7 @@ export class DashboardService {
         // Client dashboard: show projects for client user's organization
         const clientRoles = ['CLIENT_OWNER', 'CLIENT_MANAGER', 'CLIENT_MEMBER', 'VIEWER'];
         if (!clientRoles.includes(user.role)) {
-            throw new Error('Client dashboard is for client users only');
+            throw new ForbiddenException('Client dashboard is for client users only');
         }
 
         // Access can come from direct client membership OR project membership.
@@ -638,7 +638,7 @@ export class DashboardService {
     async getAnalytics(user: UserWithRoles) {
         const internalRoles = ['SUPER_ADMIN', 'OPS', 'PM', 'DEV', 'FINANCE', 'QA'];
         if (!internalRoles.includes(user.role)) {
-            throw new Error('Analytics is for internal staff only');
+            throw new ForbiddenException('Analytics is for internal staff only');
         }
         const orgId = user.orgId;
 

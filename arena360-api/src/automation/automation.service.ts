@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadGatewayException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { IntegrationsService } from '../integrations/integrations.service';
@@ -222,7 +222,7 @@ export class AutomationService {
         body: JSON.stringify(body),
       });
       if (!response.ok) {
-        throw new Error(`Webhook returned ${response.status}`);
+        throw new BadGatewayException(`Webhook returned ${response.status}`);
       }
       return;
     }

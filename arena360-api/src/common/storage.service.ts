@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as AWS from 'aws-sdk';
 import { Readable } from 'stream';
@@ -65,7 +65,7 @@ export class StorageService {
                 this.logger.log(`File saved locally: ${filePath}`);
             } catch (error) {
                 this.logger.error(`Failed to save local file: ${key}`, error.stack);
-                throw new Error(`File upload failed: ${error.message}`);
+                throw new InternalServerErrorException(`File upload failed: ${error.message}`);
             }
         } else {
             try {
@@ -78,7 +78,7 @@ export class StorageService {
                 this.logger.log(`File uploaded successfully: ${key}`);
             } catch (error) {
                 this.logger.error(`Failed to upload file: ${key}`, error.stack);
-                throw new Error(`File upload failed: ${error.message}`);
+                throw new InternalServerErrorException(`File upload failed: ${error.message}`);
             }
         }
     }
@@ -107,7 +107,7 @@ export class StorageService {
                 return url;
             } catch (error) {
                 this.logger.error(`Failed to generate signed URL: ${key}`, error.stack);
-                throw new Error(`Signed URL generation failed: ${error.message}`);
+                throw new InternalServerErrorException(`Signed URL generation failed: ${error.message}`);
             }
         }
     }
@@ -137,7 +137,7 @@ export class StorageService {
                 this.logger.log(`File deleted successfully: ${filePath}`);
             } catch (error) {
                 this.logger.error(`Failed to delete local file: ${key}`, error.stack);
-                throw new Error(`File deletion failed: ${error.message}`);
+                throw new InternalServerErrorException(`File deletion failed: ${error.message}`);
             }
         } else {
             try {
@@ -148,7 +148,7 @@ export class StorageService {
                 this.logger.log(`File deleted successfully: ${key}`);
             } catch (error) {
                 this.logger.error(`Failed to delete file: ${key}`, error.stack);
-                throw new Error(`File deletion failed: ${error.message}`);
+                throw new InternalServerErrorException(`File deletion failed: ${error.message}`);
             }
         }
     }

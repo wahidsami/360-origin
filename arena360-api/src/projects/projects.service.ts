@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { ScopeUtils, UserWithRoles } from '../common/utils/scope.utils';
 import { ActivityService } from '../activity/activity.service';
@@ -212,7 +212,7 @@ export class ProjectsService {
         // Client roles cannot update projects
         const internalRoles = ['SUPER_ADMIN', 'OPS', 'PM', 'DEV', 'QA'];
         if (!internalRoles.includes(user.role)) {
-            throw new Error('Only internal staff can update projects');
+            throw new ForbiddenException('Only internal staff can update projects');
         }
 
         // Construct update data strictly
@@ -293,7 +293,7 @@ export class ProjectsService {
         // Only SUPER_ADMIN, OPS, PM can archive
         const allowedRoles = ['SUPER_ADMIN', 'OPS', 'PM'];
         if (!allowedRoles.includes(user.role)) {
-            throw new Error('Only SUPER_ADMIN, OPS, or PM can archive projects');
+            throw new ForbiddenException('Only SUPER_ADMIN, OPS, or PM can archive projects');
         }
 
         return this.prisma.project.update({
@@ -373,7 +373,7 @@ export class ProjectsService {
         `;
         const createdEnvironment = created[0];
         if (!createdEnvironment) {
-            throw new Error('Failed to create environment');
+            throw new InternalServerErrorException('Failed to create environment');
         }
 
         await this.activityService.create({
@@ -449,7 +449,7 @@ export class ProjectsService {
         `;
         const updated = updatedRows[0];
         if (!updated) {
-            throw new Error('Failed to update environment');
+            throw new InternalServerErrorException('Failed to update environment');
         }
 
         await this.activityService.create({

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger, BadGatewayException } from '@nestjs/common';
 import { IntegrationType } from '@prisma/client';
 import { createHmac } from 'crypto';
 import { PrismaService } from '../common/prisma.service';
@@ -189,7 +189,7 @@ export class IntegrationsService {
         });
         if (!response?.ok) {
           this.logger.warn(`Webhook ${webhook.id} failed with status ${response?.status ?? 'unknown'}`);
-          throw new Error(`Webhook ${webhook.id} failed with status ${response?.status ?? 'unknown'}`);
+          throw new BadGatewayException(`Webhook ${webhook.id} failed with status ${response?.status ?? 'unknown'}`);
         }
       } catch (error) {
         this.logger.warn(`Webhook ${webhook.id} dispatch failed`, error);

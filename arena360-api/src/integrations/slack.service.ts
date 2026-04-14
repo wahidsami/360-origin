@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadGatewayException, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class SlackService {
@@ -10,7 +10,7 @@ export class SlackService {
     });
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`Slack webhook failed: ${res.status} ${body}`);
+      throw new BadGatewayException(`Slack webhook failed: ${res.status} ${body}`);
     }
     return true;
   }

@@ -1,4 +1,4 @@
-import { BadGatewayException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { BadGatewayException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../common/prisma.service';
 import OpenAI from 'openai';
@@ -81,7 +81,7 @@ export class AiService {
         milestones: { where: { deletedAt: null }, select: { title: true, status: true } },
       },
     });
-    if (!project) throw new Error('Project not found');
+    if (!project) throw new NotFoundException('Project not found');
     const text = JSON.stringify({
       name: project.name,
       description: project.description,
@@ -107,7 +107,7 @@ export class AiService {
         milestones: { where: { deletedAt: null }, select: { title: true } },
       },
     });
-    if (!project) throw new Error('Project not found');
+    if (!project) throw new NotFoundException('Project not found');
     const text = JSON.stringify({
       name: project.name,
       description: project.description,
@@ -125,7 +125,7 @@ export class AiService {
       where: { id: findingId, orgId },
       include: { project: { select: { name: true } } },
     });
-    if (!finding) throw new Error('Finding not found');
+    if (!finding) throw new NotFoundException('Finding not found');
     const text = JSON.stringify({
       title: finding.title,
       description: finding.description,
@@ -149,7 +149,7 @@ export class AiService {
         updates: { where: { deletedAt: null }, orderBy: { createdAt: 'desc' }, take: 5, select: { title: true, content: true, createdAt: true } },
       },
     });
-    if (!project) throw new Error('Project not found');
+    if (!project) throw new NotFoundException('Project not found');
     const text = JSON.stringify({
       name: project.name,
       status: project.status,

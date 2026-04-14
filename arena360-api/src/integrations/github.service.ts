@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadGatewayException, Injectable } from '@nestjs/common';
 
 export interface CreateIssueParams {
   owner: string;
@@ -30,7 +30,7 @@ export class GithubService {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || `GitHub API error: ${res.status}`);
+      throw new BadGatewayException(err.message || `GitHub API error: ${res.status}`);
     }
     const data = await res.json();
     return {
