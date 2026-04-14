@@ -73,7 +73,7 @@ interface FinancialsTabProps {
 }
 
 export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialContract, invoices: initialInvoices, onRefresh }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { confirm } = useAppDialog();
     const { projectId } = useParams();
     const { user } = useAuth();
@@ -100,6 +100,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
     const [payLoading, setPayLoading] = useState(false);
     const [agreementEnhancing, setAgreementEnhancing] = useState(false);
     const contractFormRef = useRef<HTMLFormElement | null>(null);
+    const isArabic = (i18n.language || '').toLowerCase().startsWith('ar');
 
     // Stats
     const totalOutstanding = invoices.filter(i => {
@@ -110,6 +111,22 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
     const totalPaid = invoices.filter(i => i.status?.toLowerCase() === 'paid').reduce((acc, i) => acc + i.amount, 0);
     const totalOverdue = invoices.filter(i => i.status?.toLowerCase() === 'overdue').reduce((acc, i) => acc + i.amount, 0);
     const normalizeContractStatus = (value?: string | null) => String(value || 'active').toLowerCase();
+    const translateContractStatus = (value?: string | null) => {
+        const normalized = normalizeContractStatus(value);
+        if (normalized === 'active') return t('active');
+        if (normalized === 'completed') return t('completed');
+        if (normalized === 'cancelled') return t('cancelled');
+        return value || '';
+    };
+    const translateInvoiceStatus = (value?: string | null) => {
+        const normalized = String(value || '').toLowerCase();
+        if (normalized === 'draft') return t('draft');
+        if (normalized === 'issued') return t('issued');
+        if (normalized === 'paid') return t('paid');
+        if (normalized === 'overdue') return t('overdue');
+        if (normalized === 'sent') return t('sent');
+        return normalized;
+    };
 
     const getFormField = (form: HTMLFormElement, name: string) => {
         const field = form.elements.namedItem(name);
@@ -143,6 +160,8 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
     const handleEnhanceAgreement = async () => {
         if (!projectId || !contractFormRef.current || agreementEnhancing) return;
         const form = contractFormRef.current;
+        const agreementLocale = String(getFormField(form, 'agreementLocale') || agreementLocaleDefault || 'en');
+        const targetLanguage = agreementLocale.toLowerCase().startsWith('ar') ? 'Arabic' : 'English';
         const currentDraft = {
             serviceDescription: getFormField(form, 'serviceDescription'),
             paymentTerms: getFormField(form, 'paymentTerms'),
@@ -158,7 +177,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
                         role: 'system',
                         content: [
                             'You are a professional contract drafting assistant.',
-                            'Rewrite the provided agreement sections in clear, polished, business-appropriate language.',
+                            `Rewrite the provided agreement sections in clear, polished, business-appropriate ${targetLanguage}.`,
                             'Preserve the user’s meaning and do not add new legal advice, clauses, or obligations.',
                             'If a field is empty, create a concise draft that fits a Saudi business-services agreement.',
                             'Return valid JSON only with exactly these keys: serviceDescription, paymentTerms, termDescription, specialTerms.',
@@ -180,9 +199,9 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
             setFormField(form, 'paymentTerms', typeof parsed.paymentTerms === 'string' ? parsed.paymentTerms : currentDraft.paymentTerms);
             setFormField(form, 'termDescription', typeof parsed.termDescription === 'string' ? parsed.termDescription : currentDraft.termDescription);
             setFormField(form, 'specialTerms', typeof parsed.specialTerms === 'string' ? parsed.specialTerms : currentDraft.specialTerms);
-            toast.success('Agreement draft enhanced.');
+            toast.success(t('agreement_draft_enhanced'));
         } catch (error: any) {
-            toast.error(error?.message || 'AI enhancement failed');
+            toast.error(error?.message || t('ai_enhancement_failed'));
         } finally {
             setAgreementEnhancing(false);
         }
@@ -241,6 +260,8 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
     }, [initialContract, initialInvoices]);
 
     const agreementDefaults = (editingItem?.agreementPayloadJson || {}) as Record<string, any>;
+    const agreementLocaleDefault = String(editingItem?.agreementLocale || (isArabic ? 'ar' : 'en'));
+    const agreementLanguageIsArabic = agreementLocaleDefault.toLowerCase().startsWith('ar');
 
     // --- Handlers ---
 
@@ -255,7 +276,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
             startDate: formData.get('startDate') as string,
             endDate: formData.get('endDate') as string || null,
             status: 'active',
-            agreementLocale: formData.get('agreementLocale') as string || 'ar',
+            agreementLocale: formData.get('agreementLocale') as string || agreementLocaleDefault,
             agreementPayloadJson: {
                 counterpartyName: (formData.get('counterpartyName') as string || '').trim() || undefined,
                 counterpartyRepresentative: (formData.get('counterpartyRepresentative') as string || '').trim() || undefined,
@@ -290,10 +311,10 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
     const handleDeleteContract = async (id: string) => {
         if (!projectId) return;
         const shouldDelete = await confirm({
-            title: t('delete_contract') || 'Delete Contract',
+            title: t('delete_contract'),
             message: t('confirm_delete'),
-            confirmText: t('delete') || 'Delete',
-            cancelText: t('cancel') || 'Cancel',
+            confirmText: t('delete'),
+            cancelText: t('cancel'),
             tone: 'danger',
         });
         if (!shouldDelete) return;
@@ -327,10 +348,10 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
     const handleDeleteInvoice = async (id: string) => {
         if (!projectId) return;
         const shouldDelete = await confirm({
-            title: t('delete_invoice') || 'Delete Invoice',
+            title: t('delete_invoice'),
             message: t('confirm_delete'),
-            confirmText: t('delete') || 'Delete',
-            cancelText: t('cancel') || 'Cancel',
+            confirmText: t('delete'),
+            cancelText: t('cancel'),
             tone: 'danger',
         });
         if (!shouldDelete) return;
@@ -500,7 +521,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
                                                             {overallStatus === 'PENDING' && <Badge variant="warning">{t('pending_approval')}{steps.length > 1 ? ` (${steps.findIndex((s: ApprovalInfo) => s.status === 'PENDING') + 1}/${steps.length})` : ''}</Badge>}
                                                             {overallStatus === 'APPROVED' && <Badge variant="success">{t('approved')}</Badge>}
                                                             {overallStatus === 'REJECTED' && <Badge variant="danger">{t('rejected')}</Badge>}
-                                                            <Badge variant={normalizeContractStatus(contract.status) === 'active' ? 'success' : 'neutral'}>{normalizeContractStatus(contract.status)}</Badge>
+                                                            <Badge variant={normalizeContractStatus(contract.status) === 'active' ? 'success' : 'neutral'}>{translateContractStatus(contract.status)}</Badge>
                                                         </>
                                                     );
                                                 })()}
@@ -560,7 +581,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
                                         </div>
                                         <div className="flex flex-col">
                                             <span className="text-white font-medium">{invoice.invoiceNumber}</span>
-                                            <span className="text-slate-400 text-sm">Due {format(new Date(invoice.dueDate), 'MMM dd, yyyy')}</span>
+                                            <span className="text-slate-400 text-sm">{t('due_date_label', { date: format(new Date(invoice.dueDate), 'MMM dd, yyyy') })}</span>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-6">
@@ -580,7 +601,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
                                                                 invoice.status?.toLowerCase() === 'paid' ? 'success' :
                                                                     invoice.status?.toLowerCase() === 'overdue' ? 'danger' :
                                                                         ['issued', 'sent'].includes(invoice.status?.toLowerCase() || '') ? 'warning' : 'neutral'
-                                                            }>{invoice.status?.toLowerCase()}</Badge>
+                                                            }>{translateInvoiceStatus(invoice.status)}</Badge>
                                                         </>
                                                     );
                                                 })()}
@@ -680,9 +701,9 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
                     <div className="rounded-xl border border-slate-700/60 bg-slate-900/40 p-4 space-y-4">
                         <div className="flex items-start justify-between gap-3">
                             <div>
-                                <p className="text-sm font-semibold text-white">Agreement Builder</p>
+                                <p className="text-sm font-semibold text-white">{t('agreement_builder')}</p>
                                 <p className="text-xs text-slate-400 mt-1">
-                                    Fill these fields to generate a Saudi-law agreement draft with automated PDF output.
+                                    {t('agreement_builder_description')}
                                 </p>
                             </div>
                             <Button
@@ -693,93 +714,93 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
                                 disabled={agreementEnhancing}
                             >
                                 {agreementEnhancing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                                Enhance with AI
+                                {t('enhance_with_ai')}
                             </Button>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            <Select name="agreementLocale" label="Agreement Language" defaultValue={agreementDefaults.agreementLocale || 'ar'}>
-                                <option value="ar">Arabic</option>
-                                <option value="en">English</option>
+                            <Select name="agreementLocale" label={t('agreement_language')} defaultValue={agreementLocaleDefault}>
+                                <option value="ar">{t('arabic')}</option>
+                                <option value="en">{t('english')}</option>
                             </Select>
-                            <Input name="counterpartyName" label="Counterparty Legal Name" defaultValue={agreementDefaults.counterpartyName || ''} />
+                            <Input name="counterpartyName" label={t('counterparty_legal_name')} defaultValue={agreementDefaults.counterpartyName || ''} />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            <Input name="counterpartyRepresentative" label="Counterparty Representative" defaultValue={agreementDefaults.counterpartyRepresentative || ''} />
-                            <Input name="signerName" label="Your Signatory Name" defaultValue={agreementDefaults.signerName || ''} />
+                            <Input name="counterpartyRepresentative" label={t('counterparty_representative')} defaultValue={agreementDefaults.counterpartyRepresentative || ''} />
+                            <Input name="signerName" label={t('your_signatory_name')} defaultValue={agreementDefaults.signerName || ''} />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            <Input name="signerTitle" label="Your Signatory Title" defaultValue={agreementDefaults.signerTitle || ''} />
-                            <Input name="jurisdiction" label="Jurisdiction" defaultValue={agreementDefaults.jurisdiction || 'The competent courts of Saudi Arabia'} />
+                            <Input name="signerTitle" label={t('your_signatory_title')} defaultValue={agreementDefaults.signerTitle || ''} />
+                            <Input name="jurisdiction" label={t('jurisdiction')} defaultValue={agreementDefaults.jurisdiction || (agreementLanguageIsArabic ? t('agreement_jurisdiction_default_ar') : t('agreement_jurisdiction_default_en'))} />
                         </div>
-                        <Input name="governingLaw" label="Governing Law" defaultValue={agreementDefaults.governingLaw || 'The laws and regulations of the Kingdom of Saudi Arabia'} />
+                        <Input name="governingLaw" label={t('governing_law')} defaultValue={agreementDefaults.governingLaw || (agreementLanguageIsArabic ? t('agreement_governing_law_default_ar') : t('agreement_governing_law_default_en'))} />
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1">Service Description</label>
+                            <label className="block text-sm font-medium text-slate-300 mb-1">{t('service_description')}</label>
                             <textarea
                                 name="serviceDescription"
                                 rows={3}
                                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white"
                                 defaultValue={agreementDefaults.serviceDescription || ''}
-                                placeholder="Describe the work, deliverables, and scope to appear in the agreement."
+                                placeholder={agreementLanguageIsArabic ? t('service_description_placeholder_ar') : t('service_description_placeholder_en')}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1">Payment Terms</label>
+                            <label className="block text-sm font-medium text-slate-300 mb-1">{t('payment_terms')}</label>
                             <textarea
                                 name="paymentTerms"
                                 rows={3}
                                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white"
                                 defaultValue={agreementDefaults.paymentTerms || ''}
-                                placeholder="Installments, milestones, invoicing cadence, late fees, or other payment terms."
+                                placeholder={agreementLanguageIsArabic ? t('payment_terms_placeholder_ar') : t('payment_terms_placeholder_en')}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1">Term Description</label>
+                            <label className="block text-sm font-medium text-slate-300 mb-1">{t('term_description')}</label>
                             <textarea
                                 name="termDescription"
                                 rows={3}
                                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white"
                                 defaultValue={agreementDefaults.termDescription || ''}
-                                placeholder="Describe the contract term or milestones."
+                                placeholder={agreementLanguageIsArabic ? t('term_description_placeholder_ar') : t('term_description_placeholder_en')}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1">Special Terms</label>
+                            <label className="block text-sm font-medium text-slate-300 mb-1">{t('special_terms')}</label>
                             <textarea
                                 name="specialTerms"
                                 rows={4}
                                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white"
                                 defaultValue={agreementDefaults.specialTerms || ''}
-                                placeholder="Any optional legal or commercial clauses."
+                                placeholder={agreementLanguageIsArabic ? t('special_terms_placeholder_ar') : t('special_terms_placeholder_en')}
                             />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <label className="flex items-center gap-2 text-sm text-slate-300">
                                 <input type="checkbox" name="includeConfidentiality" defaultChecked={agreementDefaults.includeConfidentiality !== false} />
-                                Include confidentiality
+                                {t('include_confidentiality')}
                             </label>
                             <label className="flex items-center gap-2 text-sm text-slate-300">
                                 <input type="checkbox" name="includeDataProtection" defaultChecked={agreementDefaults.includeDataProtection !== false} />
-                                Include data protection
+                                {t('include_data_protection')}
                             </label>
                             <label className="flex items-center gap-2 text-sm text-slate-300">
                                 <input type="checkbox" name="includeIntellectualProperty" defaultChecked={agreementDefaults.includeIntellectualProperty !== false} />
-                                Include intellectual property
+                                {t('include_intellectual_property')}
                             </label>
                             <label className="flex items-center gap-2 text-sm text-slate-300">
                                 <input type="checkbox" name="includeTermination" defaultChecked={agreementDefaults.includeTermination !== false} />
-                                Include termination
+                                {t('include_termination')}
                             </label>
                             <label className="flex items-center gap-2 text-sm text-slate-300">
                                 <input type="checkbox" name="includeForceMajeure" defaultChecked={agreementDefaults.includeForceMajeure !== false} />
-                                Include force majeure
+                                {t('include_force_majeure')}
                             </label>
                             <label className="flex items-center gap-2 text-sm text-slate-300">
                                 <input type="checkbox" name="includeNotices" defaultChecked={agreementDefaults.includeNotices !== false} />
-                                Include notices
+                                {t('include_notices')}
                             </label>
                             <label className="flex items-center gap-2 text-sm text-slate-300">
                                 <input type="checkbox" name="isBilingual" defaultChecked={agreementDefaults.isBilingual !== false} />
-                                Generate bilingual agreement
+                                {t('generate_bilingual_agreement')}
                             </label>
                         </div>
                     </div>
@@ -793,7 +814,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
             {/* Invoice Modal */}
             <Modal isOpen={isInvoiceModalOpen} onClose={() => setIsInvoiceModalOpen(false)} title={editingItem ? t('edit_invoice') : t('new_invoice')}>
                 <form onSubmit={handleCreateInvoice} className="space-y-4">
-                    <Input name="invoiceNumber" label={t('invoice_number')} placeholder="e.g. INV-2026-001" defaultValue={editingItem?.invoiceNumber} required />
+                    <Input name="invoiceNumber" label={t('invoice_number')} placeholder={t('invoice_number_placeholder')} defaultValue={editingItem?.invoiceNumber} required />
                     <div className="grid grid-cols-2 gap-4">
                         <Input name="amount" type="number" step="0.01" label={t('amount_sar')} defaultValue={editingItem?.amount} required />
                         <Input name="dueDate" type="date" label={t('due_date')} defaultValue={editingItem?.dueDate ? new Date(editingItem.dueDate).toISOString().split('T')[0] : ''} required />
