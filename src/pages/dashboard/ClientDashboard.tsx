@@ -7,6 +7,7 @@ import { ToolsPanel } from '@/components/ToolsPanel';
 import { api } from '@/services/api';
 import { Role } from '@/types';
 import { useAuth } from '../../contexts/AuthContext';
+import { formatDistanceToNow } from 'date-fns';
 
 export const ClientDashboard: React.FC<{ role: Role }> = ({ role }) => {
    const { t } = useTranslation();
@@ -99,6 +100,44 @@ export const ClientDashboard: React.FC<{ role: Role }> = ({ role }) => {
             </div>
 
             <div className="space-y-6">
+               <GlassCard id="latest-updates" title={t('latest_updates')}>
+                  <div className="space-y-3 mt-4">
+                     {(stats.latestUpdates || []).length > 0 ? (
+                        (stats.latestUpdates || []).slice(0, 5).map((update: any) => (
+                           <button
+                              key={update.id}
+                              type="button"
+                              onClick={() => navigate(`/app/projects/${update.projectId}?tab=updates`)}
+                              className="w-full rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-left transition-all hover:-translate-y-0.5 hover:border-cyan-200 hover:bg-white hover:shadow-lg dark:border-slate-800/50 dark:bg-slate-950/20 dark:hover:border-cyan-500/20 dark:hover:bg-slate-900/50"
+                           >
+                              <div className="flex items-start justify-between gap-3">
+                                 <div className="min-w-0">
+                                    <p className="text-sm font-black text-slate-900 dark:text-white truncate">{update.title}</p>
+                                    <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-cyan-600 dark:text-cyan-400 truncate">
+                                       {update.projectName || t('unknown_project')}
+                                    </p>
+                                 </div>
+                                 <ArrowUpRight className="h-4 w-4 shrink-0 text-slate-400" />
+                              </div>
+                              <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                                 {update.content}
+                              </p>
+                              <div className="mt-3 flex items-center justify-between gap-3 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+                                 <span>{update.authorName || t('unknown')}</span>
+                                 <span>
+                                    {update.timestamp && !Number.isNaN(new Date(update.timestamp).getTime())
+                                       ? formatDistanceToNow(new Date(update.timestamp), { addSuffix: true })
+                                       : t('just_now')}
+                                 </span>
+                              </div>
+                           </button>
+                        ))
+                     ) : (
+                        <p className="py-10 text-center text-sm font-medium italic text-slate-500 dark:text-slate-400">{t('no_data')}</p>
+                     )}
+                  </div>
+               </GlassCard>
+
                <GlassCard id="shared-files" title={t('shared_files')}>
                   <div className="space-y-3 mt-4">
                      {(stats.files || []).map((f: any) => (

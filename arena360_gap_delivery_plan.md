@@ -4,8 +4,8 @@ This tracker reflects the current codebase audit, not the older baseline reports
 
 ## Current Status
 
-- Missing: login UI SSO entry points, outgoing webhook delivery, email notifications for app events, and client latest-updates feed.
-- Partially implemented: notification preferences enforcement, notifications deep-linking, report template category support, reporting scope, and roles admin editing.
+- Missing: none identified in the latest cleanup pass.
+- Partially implemented: the remaining parity and hardening work, especially the generic report workflow scope, workspace/analytics alignment, and verification coverage.
 
 ## Phase 0 - User-Facing Gaps
 
@@ -20,7 +20,7 @@ This tracker reflects the current codebase audit, not the older baseline reports
 - [x] Enforce notification preferences in actual delivery, not just stored settings.
 - [x] Add email delivery for task, finding, invoice, approval, and SLA events.
 - [x] Implement outbound webhook delivery for saved integrations.
-- [x] Replace placeholder client latest-updates counts with a real count and KPI.
+- [x] Replace placeholder client latest-updates counts with a real feed and KPI.
 - [x] Add milestone events to the calendar view.
 
 ## Phase 2 - Workflow Engines

@@ -1854,6 +1854,10 @@ export const api = {
         const stats = await fetchApi('/dashboard/client');
         return {
           ...stats,
+          latestUpdates: (stats.latestUpdates || []).map((update: any) => ({
+            ...update,
+            timestamp: update.timestamp || update.createdAt,
+          })),
           myProjects: (stats.myProjects || []).map(normalizeProject)
         };
       } catch (e) {
@@ -1862,6 +1866,7 @@ export const api = {
           activeProjects: 0,
           nextMilestonesCount: 0,
           latestUpdatesCount: 0,
+          latestUpdates: [],
           pendingApprovals: 0,
           sharedFilesCount: 0,
           files: [],

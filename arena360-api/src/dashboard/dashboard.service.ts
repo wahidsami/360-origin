@@ -488,7 +488,7 @@ export class DashboardService {
             };
         }
 
-        const [upcomingMilestonesCount, sharedFilesCount, files, pendingApprovals, latestUpdatesCount] = await Promise.all([
+        const [upcomingMilestonesCount, sharedFilesCount, files, pendingApprovals, latestUpdatesCount, latestUpdates] = await Promise.all([
             this.prisma.milestone.count({
                 where: {
                     projectId: { in: projectIds },
@@ -538,6 +538,27 @@ export class DashboardService {
                     project: { deletedAt: null },
                 },
             }),
+            this.prisma.projectUpdate.findMany({
+                where: {
+                    orgId: user.orgId,
+                    deletedAt: null,
+                    visibility: 'CLIENT',
+                    projectId: { in: projectIds },
+                    project: { deletedAt: null },
+                },
+                orderBy: { createdAt: 'desc' },
+                take: 6,
+                select: {
+                    id: true,
+                    title: true,
+                    content: true,
+                    createdAt: true,
+                    type: true,
+                    projectId: true,
+                    project: { select: { id: true, name: true } },
+                    author: { select: { name: true } },
+                },
+            }),
         ]);
 
         const activeProjects = projects.filter(p =>
@@ -557,6 +578,16 @@ export class DashboardService {
             activeProjects,
             nextMilestonesCount: upcomingMilestonesCount,
             latestUpdatesCount,
+            latestUpdates: latestUpdates.map((update) => ({
+                id: update.id,
+                title: update.title,
+                content: update.content,
+                timestamp: update.createdAt.toISOString(),
+                type: update.type,
+                projectId: update.projectId,
+                projectName: update.project.name,
+                authorName: update.author.name,
+            })),
             pendingApprovals,
             sharedFilesCount,
             files,
