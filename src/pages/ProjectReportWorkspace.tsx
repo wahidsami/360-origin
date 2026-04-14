@@ -326,12 +326,12 @@ export const ProjectReportWorkspace: React.FC = () => {
             statusUpdateError: 'ÙØ´Ù„ ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø§Ù„ØªÙ‚Ø±ÙŠØ±.'
           }
         : {
-            loadingReport: 'Loading accessibility report...',
-            reportNotFound: 'Accessibility report not found.',
+            loadingReport: 'Loading report...',
+            reportNotFound: 'Report not found.',
             reportVersion: 'Tool version',
             performedBy: 'Performed by',
             unknown: 'Unknown',
-            clientReadOnly: 'Client access is read-only. Only published client-visible accessibility reports are available here.',
+            clientReadOnly: 'Client access is read-only. Only published client-visible reports are available here.',
             loadingPreview: 'Loading Preview...',
             previewReport: 'Preview Report',
             downloadLatestExport: 'Download Latest Export',
@@ -405,8 +405,8 @@ export const ProjectReportWorkspace: React.FC = () => {
             cancel: 'Cancel',
             updateFinding: 'Update Finding',
             commitFinding: 'Commit Finding',
-            reportPreview: 'Accessibility Report Preview',
-            previewDescription: 'This preview is rendered from the backend HTML/PDF pipeline and shows the final accessibility report layout using the current findings and evidence.',
+            reportPreview: 'Report Preview',
+            previewDescription: 'This preview is rendered from the backend HTML/PDF pipeline and shows the final report layout using the current findings and evidence.',
             english: 'English',
             arabic: 'Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©',
             printPdf: 'Print / Save PDF',

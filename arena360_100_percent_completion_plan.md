@@ -34,10 +34,10 @@ Freeze the target feature set so we stop changing the finish line while we finis
 Remove the remaining feature mismatches between the docs, UI, and backend.
 
 ### 1.1 Reporting
-- [ ] Restore generic report generation if it remains in scope.
-- [ ] Finish non-accessibility template workflows end to end.
-- [ ] Confirm template category, versioning, preview, assignment, generation, approval, and export all behave consistently.
-- [ ] Make report workspace, admin, and API flows agree on the same report types.
+- [x] Restore generic report generation if it remains in scope.
+- [x] Finish non-accessibility template workflows end to end.
+- [x] Confirm template category, versioning, preview, assignment, generation, approval, and export all behave consistently.
+- [x] Make report workspace, admin, and API flows agree on the same report types.
 
 ### 1.2 Workspace And Tabs
 - [ ] Audit all project tabs against role visibility and workspace templates.

@@ -7,7 +7,7 @@ For the step-by-step completion path, see [arena360_100_percent_completion_plan.
 ## Current Status
 
 - Missing: none identified in the latest cleanup pass.
-- Partially implemented: the remaining parity and hardening work, especially the generic report workflow scope, workspace/analytics alignment, and verification coverage.
+- Partially implemented: the remaining parity and hardening work, especially workspace/analytics alignment and verification coverage.
 
 ## Phase 0 - User-Facing Gaps
 
@@ -34,7 +34,7 @@ For the step-by-step completion path, see [arena360_100_percent_completion_plan.
 
 ## Phase 3 - Product Parity
 
-- [ ] Restore generic report generation and a full non-accessibility template workflow if that remains in scope.
+- [x] Restore generic report generation and a full non-accessibility template workflow if that remains in scope.
 - [ ] Finish the remaining finance surfaces that are still hidden or partial.
 - [ ] Align workspace visibility and tab behavior with the documented role model.
 - [ ] Tighten analytics and admin screens to match documented capabilities.
