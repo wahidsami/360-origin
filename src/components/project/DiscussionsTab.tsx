@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAppDialog } from '@/contexts/DialogContext';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
+import { api } from '@/services/api';
 /* ──────────────────────────────────────────────────────────────
    Types
 ────────────────────────────────────────────────────────────────*/
