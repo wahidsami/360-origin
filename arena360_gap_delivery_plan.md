@@ -1,6 +1,7 @@
 # Arena360 Gap Delivery Plan
 
 This tracker reflects the current codebase audit, not the older baseline reports.
+For go-live readiness, see [arena360_production_readiness_checklist.md](./arena360_production_readiness_checklist.md).
 
 ## Current Status
 
