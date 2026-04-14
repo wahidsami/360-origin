@@ -22,8 +22,13 @@ export class OrgController {
   @Get()
   @UseGuards(JwtAuthGuard)
   async getOrg(@Request() req: { user: { orgId?: string; id?: string; sub?: string } }) {
-    const orgId = await this.orgService.resolveOrgId(req.user);
-    return this.orgService.getOrg(orgId);
+    try {
+      const orgId = await this.orgService.resolveOrgId(req.user);
+      return this.orgService.getOrg(orgId);
+    } catch {
+      const fallbackOrgId = req.user?.orgId || 'arena360';
+      return this.orgService.getFallbackOrg(fallbackOrgId);
+    }
   }
 
   @Patch()
@@ -43,8 +48,12 @@ export class OrgController {
   @Get('role-permissions')
   @UseGuards(JwtAuthGuard)
   async getRolePermissions(@Request() req: { user: { orgId?: string; id?: string; sub?: string } }) {
-    const orgId = await this.orgService.resolveOrgId(req.user);
-    return this.orgService.getRolePermissions(orgId);
+    try {
+      const orgId = await this.orgService.resolveOrgId(req.user);
+      return this.orgService.getRolePermissions(orgId);
+    } catch {
+      return this.orgService.getDefaultRolePermissions();
+    }
   }
 
   @Patch('role-permissions')

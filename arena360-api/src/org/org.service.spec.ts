@@ -1,4 +1,3 @@
-import { NotFoundException } from '@nestjs/common';
 import { GlobalRole } from '@prisma/client';
 import { OrgService } from './org.service';
 
@@ -54,9 +53,12 @@ describe('OrgService role permissions', () => {
     expect(updated[GlobalRole.DEV]).toEqual(['MANAGE_TASKS', 'VIEW_DASHBOARD']);
   });
 
-  it('throws when the org does not exist', async () => {
+  it('returns defaults when the org does not exist', async () => {
     prisma.org.findUnique.mockResolvedValue(null);
 
-    await expect(service.getRolePermissions('missing-org')).rejects.toBeInstanceOf(NotFoundException);
+    const permissions = await service.getRolePermissions('missing-org');
+
+    expect(permissions[GlobalRole.SUPER_ADMIN]).toContain('VIEW_DASHBOARD');
+    expect(permissions[GlobalRole.VIEWER]).toEqual(['VIEW_DASHBOARD']);
   });
 });

@@ -24,6 +24,12 @@ const DEFAULT_ROLE_PERMISSIONS: Record<GlobalRole, string[]> = {
   [GlobalRole.VIEWER]: ['VIEW_DASHBOARD'],
 };
 
+const DEFAULT_ORG_BRANDING = {
+  logo: null,
+  primaryColor: '#06b6d4',
+  accentColor: '#6366f1',
+};
+
 const normalizePermissionList = (permissions: unknown): string[] => {
   if (!Array.isArray(permissions)) return [];
   return Array.from(new Set(permissions.filter((permission): permission is string => typeof permission === 'string' && permission.trim().length > 0))).sort();
@@ -48,6 +54,27 @@ const normalizeRolePermissions = (input: unknown): Record<GlobalRole, string[]> 
 @Injectable()
 export class OrgService {
   constructor(private readonly prisma: PrismaService) {}
+
+  getDefaultRolePermissions() {
+    return normalizeRolePermissions(DEFAULT_ROLE_PERMISSIONS);
+  }
+
+  getFallbackOrg(orgId: string) {
+    return {
+      id: orgId,
+      name: 'Arena360',
+      slug: 'arena360',
+      createdAt: new Date(),
+      plan: 'FREE',
+      maxUsers: 50,
+      maxProjects: 100,
+      maxStorageMB: 5000,
+      trialEndsAt: null,
+      ...DEFAULT_ORG_BRANDING,
+      rolePermissionsJson: this.getDefaultRolePermissions(),
+      onboardingDismissedAt: null,
+    };
+  }
 
   async resolveOrgId(user: { orgId?: string | null; id?: string; sub?: string } | null | undefined): Promise<string> {
     if (user?.orgId) {
@@ -117,7 +144,7 @@ export class OrgService {
       where: { id: orgId },
       select: { id: true, rolePermissionsJson: true },
     });
-    if (!org) throw new NotFoundException('Organization not found');
+    if (!org) return this.getDefaultRolePermissions();
     return normalizeRolePermissions(org.rolePermissionsJson);
   }
 
@@ -132,7 +159,16 @@ export class OrgService {
   }
 
   async getUsage(orgId: string) {
-    await this.getOrg(orgId);
+    try {
+      await this.getOrg(orgId);
+    } catch {
+      return {
+        users: 0,
+        projects: 0,
+        storageUsedBytes: 0,
+        storageUsedMB: 0,
+      };
+    }
     const [userCount, projectCount] = await Promise.all([
       this.prisma.user.count({ where: { orgId } }),
       this.prisma.project.count({ where: { orgId, deletedAt: null } }),

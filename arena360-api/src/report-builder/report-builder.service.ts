@@ -95,18 +95,18 @@ export class ReportBuilderService {
   }
 
   private async resolveClientLogoUrl(logoId: string | null | undefined) {
-    if (!logoId) return undefined;
+    if (!logoId) return '/arenalogo.png';
     if (logoId.startsWith('http')) return logoId;
 
     try {
       const file = await this.prisma.fileAsset.findUnique({
         where: { id: logoId },
       });
-      if (!file) return undefined;
+      if (!file) return '/arenalogo.png';
       return await this.storage.getSignedUrl(file.storageKey, 3600, false);
     } catch (error) {
       this.logger.warn(`Failed to resolve client logo for report rendering: ${error?.message || error}`);
-      return undefined;
+      return '/arenalogo.png';
     }
   }
 
@@ -1180,7 +1180,7 @@ export class ReportBuilderService {
     const clientName = this.normalizeDisplayText(report?.client?.name) || labels.client;
     const projectName = this.normalizeDisplayText(report?.project?.name) || labels.project;
     const auditorName = this.normalizeDisplayText(report?.performedBy?.name || labels.performedBy);
-    const logoUrl = typeof report?.client?.logo === 'string' ? report.client.logo : '';
+    const logoUrl = typeof report?.client?.logo === 'string' ? report.client.logo : '/arenalogo.png';
     const reportDate = this.formatReportDate(report.publishedAt || report.updatedAt || report.createdAt, localeConfig.locale);
     const introductionBody =
       this.normalizeDisplayText(summary.introduction) ||

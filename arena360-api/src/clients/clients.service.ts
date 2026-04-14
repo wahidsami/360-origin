@@ -14,7 +14,7 @@ export class ClientsService {
     ) { }
 
     private async resolveLogoUrl(logoId: string | null | undefined): Promise<string | undefined> {
-        if (!logoId) return undefined;
+        if (!logoId) return '/arenalogo.png';
         // If it looks like a URL already, return it
         if (logoId.startsWith('http')) return logoId;
 
@@ -28,7 +28,7 @@ export class ClientsService {
         } catch (e) {
             console.error('Failed to resolve logo URL:', e);
         }
-        return undefined;
+        return '/arenalogo.png';
     }
 
     async create(user: UserWithRoles, createClientDto: any) {
