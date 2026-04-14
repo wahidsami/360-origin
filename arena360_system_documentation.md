@@ -1,552 +1,467 @@
 # Arena360 System Documentation
 
-> Purpose: a detailed, current-state guide to what Arena360 is, what it does, and how each role uses it.
+> Purpose: a current-state guide to what Arena360 is, what it does, and how the shipped product works today.
 
 ## 1. What Arena360 Is
 
-Arena360 is a multi-tenant operations platform for agencies, consultancies, IT service companies, and internal delivery teams that need to manage clients, projects, finances, quality work, and collaboration in one place.
+Arena360 is a multi-tenant operations platform for agencies, consultancies, IT service providers, and internal delivery teams that manage clients, projects, financial work, quality issues, and collaboration in one place.
 
-It brings together:
-- client relationship management
-- project and task delivery
-- time tracking and work planning
-- quality findings and reporting
-- contract and invoice workflows
-- automation, approvals, notifications, and SLA tracking
-- admin controls, analytics, wiki knowledge, and workspace templates
+It combines:
+- client management
+- project delivery
+- task execution
+- time tracking
+- reporting and approvals
+- finance and billing
+- notifications and automation
+- wiki and knowledge sharing
+- SLA tracking
+- integrations and webhooks
+- admin, analytics, and workspace configuration
 - a client portal for external stakeholders
 
-The system is designed to reduce tool sprawl. Instead of keeping delivery in one app, billing in another, and reporting in a spreadsheet, Arena360 gives teams a shared operational workspace with role-aware access.
+The system is designed to reduce tool sprawl. Instead of splitting delivery across spreadsheets, email threads, issue trackers, finance tools, and separate portals, Arena360 gives teams one coordinated workspace with role-aware access.
 
-## 2. What The System Helps Organizations Do
+## 2. What The Platform Helps Organizations Do
 
 Arena360 helps organizations:
-- track work from lead or client onboarding through delivery and billing
-- keep internal staff and clients working in the same platform without exposing private data
-- standardize how projects, tasks, updates, and approvals flow through the business
-- improve visibility into deadlines, risks, finances, and client-facing progress
-- keep an audit trail of major actions for operational control
-- automate repetitive work such as notifications, emails, status changes, and webhooks
-- centralize reports, approvals, and documentation
-- support multiple organizations in one deployment with org-level settings and branding
+- manage client relationships from onboarding through delivery and billing
+- coordinate internal staff and external clients in the same deployment without exposing private data
+- standardize how work moves through projects, reviews, approvals, and finance
+- keep a clear audit trail of important changes
+- automate repetitive operational work such as notifications, emails, status changes, user assignment, and webhook dispatch
+- generate and review reports with versioned templates and approvals
+- monitor operational health through dashboards, alerts, and activity logs
+- support multiple organizations with org-level settings, branding, and SSO
 
-## 3. Product Shape
-
-Arena360 is organized around four main experiences:
-- internal dashboards for operations, project managers, development, finance, and admin users
-- client dashboards and client-scoped project views
-- project detail pages with rich tabs for delivery, collaboration, finance, and reporting
-- admin and configuration screens for roles, templates, org settings, integrations, and automation
-
-## 4. Technology Snapshot
-
-Arena360 is built with:
-- React 18 + TypeScript on the frontend
-- Vite for the client build
-- NestJS on the backend
-- Prisma with PostgreSQL for data access
-- JWT authentication with bcrypt passwords and TOTP 2FA
-- Google SSO and SAML SSO
-- Resend for transactional email
-- Stripe for payment flows
-- Socket.IO for live notifications
-- Tailwind CSS, Recharts, FullCalendar, and react-frappe-gantt for the UI
-- pptxgenjs and pdfkit for report generation
-- Swagger support on the API
-- local uploads or MinIO-compatible storage for files and exports
-
-## 5. Role Model
+## 3. Role Model
 
 Arena360 uses nine roles:
-- internal roles: `SUPER_ADMIN`, `OPS`, `PM`, `DEV`, `QA`, `FINANCE`
-- client roles: `CLIENT_OWNER`, `CLIENT_MANAGER`, `CLIENT_MEMBER`, `VIEWER`
 
-The platform is role-aware. That means:
-- different roles land on different dashboards
-- different roles see different tabs in projects
-- internal and external users get different data visibility
-- permissions can be controlled by role defaults and org-specific overrides
+| Role | Type | Typical Purpose |
+|---|---|---|
+| `SUPER_ADMIN` | Internal | Platform owner, system administrator, and top-level support user |
+| `OPS` | Internal | Operations, delivery coordination, and cross-project oversight |
+| `PM` | Internal | Project planning, execution, approvals, and team coordination |
+| `DEV` | Internal | Delivery execution, task work, and project contribution |
+| `QA` | Internal | Testing, findings review, and quality validation |
+| `FINANCE` | Internal | Billing, contracts, invoices, and financial oversight |
+| `CLIENT_OWNER` | External | Client-side owner with the broadest client portal access |
+| `CLIENT_MANAGER` | External | Client-side manager with collaborative visibility |
+| `CLIENT_MEMBER` | External | Client-side member with lighter read-focused access |
+| `VIEWER` | External | Read-only observer for approved client-visible content |
 
-## 6. Role Capabilities
+The platform is role-aware. Different roles see different dashboards, tabs, actions, and data sets, and org-specific overrides can further adjust access.
 
-### 6.1 SUPER_ADMIN
+## 4. Role Capabilities
 
-The Super Admin has the broadest access and is the top-level platform operator.
+### SUPER_ADMIN
 
-They can:
-- manage all platform users
-- manage roles and role defaults
-- edit org settings, branding, and SSO configuration
-- view all main dashboards and analytics
-- access client, project, finance, reporting, wiki, automation, integrations, and admin screens
-- adjust workspace and report templates
-- review notifications, approvals, and audit activity
-- impersonate users for support and troubleshooting
+Super Admins can:
+- manage users, roles, permissions, and organization-wide configuration
+- edit branding, SSO settings, and workspace templates
+- view all major dashboards, analytics, reports, finance, and admin screens
+- access clients, projects, findings, notifications, automations, wiki, integrations, and approvals
+- review operational alerts, audit logs, and system activity
 
-### 6.2 OPS
+### OPS
 
-Operations users coordinate the day-to-day delivery engine.
-
-They can:
+Operations users can:
 - manage clients and projects
-- work across tasks, milestones, team assignment, and delivery follow-up
-- review finance data and operational KPIs
-- participate in approvals for reports, contracts, and invoices
-- view analytics, notifications, automations, and SLA activity
-- support client-facing workflows while still seeing internal operational data
+- coordinate tasks, milestones, recurring work, and delivery follow-up
+- review finance surfaces and approval queues
+- work with notifications, automations, SLA status, and project-level health
+- support client-facing work while retaining internal operational visibility
 
-### 6.3 PM
+### PM
 
-Project Managers focus on project execution and delivery coordination.
-
-They can:
+Project Managers can:
 - create and manage projects
-- assign tasks and track progress
-- manage milestones, updates, discussions, and team coordination
-- monitor risk, health, and readiness indicators
-- review reports, findings, and project progress
-- use timelines, sprints, recurring tasks, and calendar views
+- assign tasks and coordinate team members
+- manage milestones, discussions, updates, and readiness workflows
+- review reports, findings, timelines, and sprint work
 - participate in approvals where the workflow allows it
 
-### 6.4 DEV
+### DEV
 
-Developers get a focused execution view.
+Developers can:
+- view their assigned work in dashboards and project tabs
+- update tasks, add comments, and track progress
+- log time against tasks
+- review files, discussions, updates, and findings connected to their work
+- use AI-assisted features where enabled
 
-They can:
-- view the developer dashboard with task KPIs
-- work on assigned tasks
-- update task status and collaborate through project updates and discussions
-- track time against their tasks
-- review findings, files, and project context
-- use the AI tools where enabled
-- access only the tabs and permissions that match their role and workspace configuration
+### QA
 
-### 6.5 QA
+Quality users can:
+- review findings and project quality issues
+- validate fixes and inspect evidence
+- work with reports, timelines, and task context
+- participate in test-oriented workflows and approvals
 
-Quality assurance users focus on testing, validation, and defect handling.
+### FINANCE
 
-They can:
-- view the developer-style operational dashboard
-- track findings and project quality issues
-- review task and project progress
-- work with reports and verification flows
-- inspect timelines and updates tied to quality work
-- participate in workflow and approval steps where allowed
+Finance users can:
+- view finance dashboards and financial KPIs
+- manage contracts, invoices, and payment workflows
+- review outstanding balances, paid amounts, and due invoices
+- participate in approval flows tied to billing and reporting
 
-### 6.6 FINANCE
+### CLIENT_OWNER
 
-Finance users handle billing and financial oversight.
-
-They can:
-- view the finance dashboard
-- inspect outstanding amounts, paid invoices, overdue invoices, and active contracts
-- review client and project finance summaries
-- manage invoice and contract workflows
-- participate in approvals
-- review finance-related notifications and audit entries
-- work with financial tabs and finance-visible project data
-
-### 6.7 CLIENT_OWNER
-
-Client owners are the top external users for a client organization.
-
-They can:
+Client owners can:
 - access the client dashboard
-- view active projects and upcoming milestones
-- see client-visible updates
-- review shared files
-- access reports and financial summaries allowed to client roles
+- view client-visible project status and updates
+- review shared files, milestones, and reports
+- see finance summaries that are allowed to client roles
 - participate in approvals when configured
-- view the client portal without internal-only operational data
 
-### 6.8 CLIENT_MANAGER
+### CLIENT_MANAGER
 
-Client managers are collaborative external users with broader client visibility.
+Client managers can:
+- review client portal data for assigned projects
+- follow delivery progress and client-visible updates
+- collaborate on shared items where permissions allow it
+- monitor status without internal-only data exposure
 
-They can:
-- view the client dashboard
-- track project progress and client-visible updates
-- open shared files and relevant reports
-- see project milestones and selected financial context
-- collaborate on discussions and reviews where permitted
-- monitor delivery status for their organization
+### CLIENT_MEMBER
 
-### 6.9 CLIENT_MEMBER
+Client members can:
+- view a lighter client portal
+- follow approved updates, milestones, and shared files
+- stay informed without internal editing access
 
-Client members have lighter visibility into the client portal.
+### VIEWER
 
-They can:
-- view a reduced dashboard
-- follow client-visible updates and selected project progress
-- open approved shared files and reports
-- monitor milestones and basic project status
-- stay informed without internal editing controls
+Viewers can:
+- consume read-only client-visible content
+- view approved reports and project status
+- avoid management or editing responsibilities
 
-### 6.10 VIEWER
+## 5. Core Platform Modules
 
-Viewers are read-only external stakeholders.
-
-They can:
-- view dashboard content that is allowed to them
-- observe selected project status and shared information
-- consume approved files, reports, and updates
-- avoid any management or editing responsibility
-
-## 7. Core Modules
-
-### 7.1 Authentication and Access Control
+### 5.1 Authentication And Access Control
 
 Arena360 supports:
 - email and password login
-- 2FA with TOTP
-- forgot-password and reset-password flows
 - invite-based onboarding
-- org-aware SSO entry points for Google and SAML
+- forgot password and reset password flows
+- 2FA with TOTP
+- org-aware Google SSO
+- org-aware SAML SSO
 - role-based route protection
 - org-scoped access control
-- impersonation for Super Admin support work
-- rate-limited sensitive auth routes
+- rate limiting on sensitive auth routes
+- organization-aware login and branding
 
-### 7.2 Organization and Tenant Management
+### 5.2 Organization And Tenant Management
 
-Arena360 is built for organization-scoped operation.
+Arena360 supports:
+- organization creation and setup
+- organization slug lookup for public login branding
+- organization logo and color settings
+- organization SSO configuration
+- organization-level role permission overrides
+- onboarding status and onboarding dismissal controls
 
-It supports:
-- org creation and setup
-- org settings for name, slug, logo, and colors
-- org usage and management screens
-- org-level SSO configuration
-- role-default permissions and org-specific overrides
+### 5.3 Dashboards
 
-### 7.3 Dashboards
+Arena360 provides role-specific dashboards for:
+- Super Admin and operations users
+- project managers
+- developers
+- finance users
+- client users
 
-The dashboard changes by role.
-
-Internal dashboards can show:
-- client counts
-- project counts
-- revenue and financial KPIs
+Dashboard content can include:
+- clients and project counts
+- revenue and outstanding balance
 - overdue tasks
-- latest updates
 - projects at risk
 - pending approvals
-- quick-access tools
+- latest project updates
+- finance KPIs
+- due soon work
+- client-visible progress
 
-Developer dashboards can show:
-- open tasks
-- due soon tasks
-- in-review tasks
-- overdue tasks
+### 5.4 Client Management
 
-Finance dashboards can show:
-- outstanding balances
-- invoices due
-- paid revenue
-- active contracts
-
-Client dashboards can show:
-- active projects
-- next milestones
-- latest client-visible updates
-- pending approvals
-- shared files
-- my projects
-
-### 7.4 Client Management
-
-Client management covers the full client lifecycle.
-
-It supports:
-- client listing, filtering, and search
-- client creation and editing
-- archive and restore flows
-- client profile data such as contact person, industry, website, and address
-- billing profile data such as currency, VAT number, and tax ID
-- client members and member roles
-- client-scoped files
+Client management includes:
+- client creation, editing, archiving, restoring, and deletion
+- billing profile fields
+- contact information and notes
+- client members and client-side roles
 - client revenue and outstanding balance tracking
-- client activity and project association
+- client-scoped files and activity
+- project associations
 
-### 7.5 Project Management
+### 5.5 Project Management
 
-Project management is the center of the product.
+Projects are the center of Arena360. Each project can contain:
+- overview and readiness information
+- tasks
+- milestones
+- updates
+- files
+- findings
+- reports
+- financials
+- team members
+- discussions
+- activity
+- timeline
+- sprints
+- recurring tasks
+- testing and environments
 
-Projects support:
-- create, edit, archive, and view workflows
-- status and health tracking
-- budget and date fields
-- tags and metadata
-- role-aware project visibility
-- full project detail pages
+Project work now uses workspace and tab configuration so internal, finance, and client audiences see the correct surfaces for their role and template.
 
-Project tabs currently include:
-- Overview
-- Tasks
-- Milestones
-- Updates
-- Files
-- Findings
-- Reports
-- Financials
-- Team
-- Discussions
-- Activity
-- Timeline
-- Sprints
-- Recurring Tasks
-- Testing / Environments
-
-### 7.6 Task Management
+### 5.6 Task Management
 
 Task management supports:
 - task creation and editing
-- status tracking
-- priority levels
-- assignees
-- due dates
-- labels
-- milestone links
-- sprint links
+- status, priority, assignee, due date, and label fields
+- milestone and sprint association
 - task dependencies
 - recurring task generation
-- kanban-style workflows
+- workflow movement through the delivery lifecycle
+- task-linked time tracking
 
-### 7.7 Time Tracking
+### 5.7 Time Tracking
 
 Time tracking supports:
 - logging minutes against tasks
-- billable and non-billable work
-- viewing time entries per project or task
-- supporting internal productivity reporting
-- tying time to delivery and billing context
+- billable and non-billable entries
+- task-scoped and project-scoped review
+- personal time entry review
+- operational visibility for work allocation
 
-### 7.8 Milestones, Timeline, Calendar, and Sprints
+### 5.8 Milestones, Calendar, Timeline, And Sprints
 
-These surfaces help teams plan and sequence delivery.
+Arena360 supports:
+- milestone creation and progress tracking
+- project calendar views with task and milestone events
+- timeline/Gantt-style delivery views
+- sprint creation and sprint task assignment
+- recurring task scheduling and automated creation
 
-They support:
-- milestone creation and management
-- milestone status and completion tracking
-- timeline views for project work
-- calendar views that include tasks and milestones
-- sprint creation and task assignment
-- recurring task scheduling
+### 5.9 Updates, Discussions, And Activity
 
-### 7.9 Updates, Discussions, and Activity
-
-These features support collaboration and status visibility.
-
-They support:
-- posting project updates
-- marking updates as internal or client-visible
-- viewing latest updates in dashboards
+These surfaces support collaboration and visibility:
+- project updates with internal or client visibility
 - threaded project discussions
-- reply threads and collaboration trails
+- reply trails
 - activity feeds for major project actions
+- dashboard surfaces that show recent updates
 
-### 7.10 Files
+### 5.10 Files
 
 File management supports:
-- uploads at client, project, or finding scope
-- categorized file storage
-- internal or client visibility
-- downloads and presigned access
+- file upload by client, project, or finding context
+- internal and client visibility
+- categorized files
+- secure download access
 - file metadata and attribution
 
-### 7.11 Findings and QA
+### 5.11 Findings And Quality
 
 The findings module supports:
 - issue logging
 - severity levels
-- status management
-- evidence uploads
-- comments and timelines
-- assignment and remediation tracking
-- AI analysis when enabled
+- status workflows
+- evidence attachments
+- comments and discussion
+- assignment and remediation
+- timeline history
 
-### 7.12 Reporting
+### 5.12 Reporting
 
 Arena360 reporting supports:
-- report list and search
-- report generation
 - report templates and template versions
-- client template assignment
-- report exports
-- downloadable outputs for project work
-- approvals around reports where required
+- generic report categories and subcategories
+- project report creation
+- preview and export
+- approval workflows
+- client-visible and internal report visibility
+- downloadable PDF output
 
-### 7.13 Financial Management
+The reporting system is no longer a shell. It now supports real template management, generic report workflow, approvals, and export paths.
+
+### 5.13 Financial Management
 
 The finance module supports:
 - contracts
 - invoices
-- payment tracking
-- payment integration
+- payment intent creation
+- payment status tracking
 - finance dashboards
-- financial summaries on client and project pages
-- approvals on finance-related workflows
+- client financial summaries
+- finance approvals
 
-### 7.14 Notifications
+The contract workflow now includes a Saudi-law-aware agreement builder that:
+- captures the counterparty legal name, representative, signer, jurisdiction, governing law, payment terms, and term summary
+- lets admins toggle optional clauses such as confidentiality, data protection, intellectual property, termination, force majeure, and notices
+- generates a bilingual or single-language PDF agreement automatically after save
+- stores the generated agreement as a downloadable file asset tied to the contract
+- preserves the draft payload so the agreement can be reopened and adjusted later
+- is intended for internal review and legal sign-off before execution
+
+### 5.14 Notifications
 
 Notifications support:
 - in-app notification center
-- notification counts
-- linked navigation targets
-- client and internal delivery paths
+- unread counts and mark-read actions
+- linked navigation into the relevant project or entity
 - email delivery for supported event categories
-- user preferences
-- notification history and read state
+- per-user notification preferences
+- operational alerts for failures and runtime issues
 
-### 7.15 Automation and Integrations
+### 5.15 Automation And Integrations
 
-Arena360 supports workflow automation and external system integration.
-
-Automation can:
-- create notifications
+Automation supports:
+- create notification
 - send email
-- dispatch webhooks
-- update statuses
-- assign users
+- dispatch webhook
+- update status
+- assign user
 
-Integrations can:
-- connect with external services such as Slack, GitHub, and webhooks where configured
-- respond to project and operational events
+Integrations support:
+- Slack notifications
+- GitHub issue creation
+- outbound webhooks with event filtering and signatures
 
-### 7.16 Wiki
+### 5.16 Wiki And Knowledge Base
 
 The wiki module supports:
-- page creation and editing
+- wiki page creation and editing
 - page versioning
 - internal knowledge capture
-- searchable documentation content
+- article retrieval by slug or id
 
-### 7.17 SLA
+### 5.17 SLA Management
 
 The SLA layer supports:
 - policy configuration
+- entity scoping
 - tracker creation
-- breach checks
+- breach monitoring
 - lifecycle-driven status updates
-- operational follow-up on overdue work
 
-### 7.18 Analytics and Admin
+### 5.18 Analytics And Admin
 
-Analytics support:
-- portfolio health
-- task completion
-- financial summaries
-- findings severity and closure metrics
-
-Admin surfaces support:
-- user management
-- role editing
-- role permissions
-- org and workspace templates
+Analytics and admin surfaces support:
+- portfolio and project health
+- task and delivery summaries
+- finance summaries
+- findings severity and closure trends
+- user administration
+- editable role permissions
+- workspace templates
 - report templates
-- integrations
-- automation rules
+- organization settings
+- integration management
 
-### 7.19 Workspace Templates and Tab Visibility
+### 5.19 Workspace Templates And Environments
 
-Arena360 uses workspace configuration to control what tabs appear for which role and which audience.
+Arena360 supports:
+- project workspace templates
+- client workspace assignments
+- role-aware tab visibility
+- testing/environments management on projects
+- editable environment access records
 
-This supports:
-- internal and client-specific workspace behavior
-- read-only versus interactive tab states
-- template-driven project layouts
-- safer role-based presentation without exposing everything everywhere
+### 5.20 Audit And Operational Safety
 
-## 8. What Each Role Typically Sees In Practice
+Arena360 includes:
+- automatic audit logging for mutating actions
+- before/after snapshots
+- request IDs, IP addresses, and user agents
+- sensitive-field redaction in audit entries
+- operational alerts for API failures, auth failures, job failures, email failures, and webhook failures
+- backup and restore drill scripts
+- deployment smoke-test script
+- verified migration flow on a disposable clone
 
-### SUPER_ADMIN
-- full dashboards and admin views
-- all clients and projects
-- finance, reports, automation, wiki, integrations, analytics
-- role and org settings
+## 6. Key End-To-End Workflows
 
-### OPS
-- operational dashboard
-- clients, projects, finance, approvals, analytics
-- delivery coordination and workflow control
+### 6.1 Login And Onboarding
 
-### PM
-- projects, tasks, milestones, updates, team, reports, discussions
-- project-level finance visibility where allowed
-- timeline, sprint, recurring work, and readiness views
+Users can:
+- log in with email and password
+- complete 2FA if enabled
+- use Google or SAML SSO where configured
+- accept an invite and activate an account
+- reset a forgotten password
 
-### DEV
-- assigned tasks and project context
-- updates, discussions, files, findings, and time tracking
-- limited internal visibility focused on execution
+### 6.2 Project Delivery
 
-### QA
-- findings, validation work, task context, and project quality surfaces
-- reporting and review-driven workflows
+Teams can:
+- create a project
+- assign members
+- add tasks, milestones, files, findings, and updates
+- track time and dependencies
+- review reports and approvals
+- move the project through delivery and billing stages
 
-### FINANCE
-- financial dashboards and finance tabs
-- contracts, invoices, approvals, and client finance context
+### 6.3 Reporting
 
-### CLIENT_OWNER / CLIENT_MANAGER / CLIENT_MEMBER / VIEWER
-- client dashboard
-- client-visible project updates
-- shared files
-- visible reports and milestones
-- approved financial or collaboration views as configured
+Users can:
+- create template versions
+- assign templates to clients
+- build project reports
+- preview and approve reports
+- publish or export report outputs
 
-## 9. How Arena360 Fits Into An Organization
+### 6.4 Finance
 
-Arena360 works best when an organization needs:
-- one system for delivery and client communication
-- one source of truth for project status
-- role-based separation between internal and external users
-- financial visibility tied to projects
-- quality tracking tied to delivery
-- automation for repetitive coordination work
-- auditability for management and support
+Finance and project teams can:
+- create contracts and invoices
+- generate payment intents
+- track overdue and paid invoices
+- review finance dashboards and summaries
+- use approvals for controlled financial work
 
-It is especially useful for:
-- digital agencies
-- software consultancies
-- IT service providers
-- product delivery teams with multiple client accounts
+### 6.5 Notifications And Alerts
 
-## 10. Current Product State
+The platform can:
+- create in-app notifications
+- send email for supported notification categories
+- dispatch webhook payloads
+- emit live socket updates
+- surface operational failures to internal staff as alerts
 
-The platform is feature-rich and much more than an MVP.
+## 7. What The System Looks Like In Practice
 
-The critical flow surface is now verified in the repo for:
-- login and org-aware SSO
-- notifications and linked navigation
-- approvals
-- reports and exports
-- client portal dashboard flows
-- finance dashboard and finance actions
-- permissions and role overrides
+The current shipped product is:
+- role-aware
+- multi-tenant
+- operationally rich
+- finance-aware
+- client-portal friendly
+- reporting-capable
+- automation-enabled
+- audit-friendly
+- production-hardened with verified backups, smoke checks, and migration safety
 
-At the same time, the current repo still treats some work as go-live hardening rather than finished launch polish. The most important remaining work is:
-- end-to-end testing
-- permissions audit
-- deployment and backup verification
-- production monitoring and alerting
-- final parity cleanup on the remaining tracked items
+The most important remaining optional work is not core product capability. It is:
+- broader load testing
+- client portal RTL validation on the same release candidate
+- any future mobile app work
 
-That means Arena360 is a strong production candidate, but the safest way to describe it today is:
-- more complete than an MVP
-- close to production
-- still needing final operational hardening before broad rollout
+## 8. Summary
 
-## 11. Summary
-
-Arena360 is a unified operating system for client delivery teams.
+Arena360 is now a real operational platform, not an MVP shell.
 
 It combines:
 - client management
 - project execution
-- time and milestone tracking
-- reporting and finance
+- task and milestone control
+- time tracking
+- findings and QA
+- reporting and approvals
+- finance and billing
 - notifications and automation
-- analytics and admin control
-- a client portal for external stakeholders
+- wiki, SLA, analytics, and admin controls
+- client portal access
 
-The result is a platform that helps organizations manage work, visibility, accountability, and client communication from one coordinated system.
+The result is a coordinated system for organizations that need to manage delivery, visibility, accountability, and client communication from one place.

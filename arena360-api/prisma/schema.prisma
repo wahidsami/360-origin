@@ -746,6 +746,7 @@ model FileAsset {
 
   projectReportEntryMedia ProjectReportEntryMedia[]
   projectReportExports ProjectReportExport[]
+  agreementContract Contract? @relation("ContractAgreementPdf")
 
   @@index([orgId])
   @@index([clientId])
@@ -1052,6 +1053,14 @@ model Contract {
   startDate   DateTime
   endDate     DateTime?
   status      ContractStatus @default(ACTIVE)
+  agreementLocale String     @default("ar")
+  agreementPayloadJson Json?
+  agreementPdfFileAssetId String? @unique
+  agreementPdfFileAsset FileAsset? @relation("ContractAgreementPdf", fields: [agreementPdfFileAssetId], references: [id], onDelete: SetNull)
+  agreementGeneratedAt DateTime?
+  agreementSignedAt DateTime?
+  agreementSignedById String?
+  agreementStatus String      @default("DRAFT")
 
   createdById String
   createdBy   User           @relation(fields: [createdById], references: [id], onDelete: Cascade, name: "ContractCreator2")

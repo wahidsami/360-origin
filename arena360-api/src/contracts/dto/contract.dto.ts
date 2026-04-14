@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsEnum, IsOptional, IsDateString } from 'class-validator';
+import { IsString, IsNumber, IsEnum, IsOptional, IsDateString, IsObject, IsIn } from 'class-validator';
 import { ContractStatus } from '@prisma/client';
 
 export class CreateContractDto {
@@ -22,6 +22,15 @@ export class CreateContractDto {
     @IsOptional()
     @IsEnum(ContractStatus)
     status?: ContractStatus;
+
+    @IsOptional()
+    @IsString()
+    @IsIn(['ar', 'en'])
+    agreementLocale?: string;
+
+    @IsOptional()
+    @IsObject()
+    agreementPayloadJson?: Record<string, unknown>;
 }
 
 export class UpdateContractDto {
@@ -48,4 +57,13 @@ export class UpdateContractDto {
     @IsOptional()
     @IsEnum(ContractStatus)
     status?: ContractStatus;
+
+    @IsOptional()
+    @IsString()
+    @IsIn(['ar', 'en'])
+    agreementLocale?: string;
+
+    @IsOptional()
+    @IsObject()
+    agreementPayloadJson?: Record<string, unknown>;
 }

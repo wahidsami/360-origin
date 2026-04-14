@@ -117,6 +117,13 @@ const normalizeReport = (report: any): Report => ({
   generatedBy: report.generatedBy || report.createdBy?.name || undefined,
 });
 
+const normalizeContract = (contract: any): Contract => ({
+  ...contract,
+  status: (contract?.status?.toLowerCase() || 'active') as Contract['status'],
+  agreementStatus: contract?.agreementStatus || contract?.agreement_status || undefined,
+  agreementLocale: contract?.agreementLocale || contract?.agreement_locale || undefined,
+});
+
 const normalizeProjectReportEntryOutcome = (value: unknown): ProjectReportEntryOutcome => {
   if (value === 'PASS' || value === 'FAIL' || value === 'PARTIAL' || value === 'NOT_APPLICABLE' || value === 'NOT_TESTED') {
     return value;
@@ -654,7 +661,7 @@ export const api = {
           fetchApi(`/projects/${projectId}/invoices`).catch(() => [])
         ]);
         return {
-          contract: contracts[0],
+          contract: contracts[0] ? normalizeContract(contracts[0]) : undefined,
           invoices
         };
       } catch (e) {
@@ -664,7 +671,8 @@ export const api = {
     },
     getContracts: async (projectId: string): Promise<Contract[]> => {
       try {
-        return await fetchApi(`/projects/${projectId}/contracts`);
+        const contracts = await fetchApi(`/projects/${projectId}/contracts`);
+        return Array.isArray(contracts) ? contracts.map(normalizeContract) : [];
       } catch (e) {
         return [];
       }
@@ -674,20 +682,22 @@ export const api = {
         ...payload,
         status: payload.status?.toUpperCase()
       };
-      return fetchApi(`/projects/${projectId}/contracts`, {
+      const contract = await fetchApi(`/projects/${projectId}/contracts`, {
         method: 'POST',
         body: JSON.stringify(body)
       });
+      return normalizeContract(contract);
     },
     updateContract: async (projectId: string, contractId: string, payload: any): Promise<Contract> => {
       const body = {
         ...payload,
         status: payload.status?.toUpperCase()
       };
-      return fetchApi(`/projects/${projectId}/contracts/${contractId}`, {
+      const contract = await fetchApi(`/projects/${projectId}/contracts/${contractId}`, {
         method: 'PATCH',
         body: JSON.stringify(body)
       });
+      return normalizeContract(contract);
     },
     deleteContract: async (projectId: string, contractId: string): Promise<void> => {
       return fetchApi(`/projects/${projectId}/contracts/${contractId}`, { method: 'DELETE' });
@@ -1198,7 +1208,8 @@ export const api = {
     // Contracts
     getContracts: async (projectId: string) => {
       try {
-        return await fetchApi(`/projects/${projectId}/contracts`);
+        const contracts = await fetchApi(`/projects/${projectId}/contracts`);
+        return Array.isArray(contracts) ? contracts.map(normalizeContract) : [];
       } catch (e) {
         console.error('Failed to get contracts:', e);
         return [];
@@ -1206,10 +1217,15 @@ export const api = {
     },
     createContract: async (projectId: string, contract: any) => {
       try {
-        return await fetchApi(`/projects/${projectId}/contracts`, {
+        const payload = {
+          ...contract,
+          status: contract.status?.toUpperCase(),
+        };
+        const created = await fetchApi(`/projects/${projectId}/contracts`, {
           method: 'POST',
-          body: JSON.stringify(contract)
+          body: JSON.stringify(payload)
         });
+        return normalizeContract(created);
       } catch (e) {
         console.error('Failed to create contract:', e);
         return undefined;
@@ -1217,10 +1233,15 @@ export const api = {
     },
     updateContract: async (projectId: string, id: string, contract: any) => {
       try {
-        return await fetchApi(`/projects/${projectId}/contracts/${id}`, {
+        const payload = {
+          ...contract,
+          status: contract.status?.toUpperCase(),
+        };
+        const updated = await fetchApi(`/projects/${projectId}/contracts/${id}`, {
           method: 'PATCH',
-          body: JSON.stringify(contract)
+          body: JSON.stringify(payload)
         });
+        return normalizeContract(updated);
       } catch (e) {
         console.error('Failed to update contract:', e);
         return undefined;

@@ -107,6 +107,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
 
     const totalPaid = invoices.filter(i => i.status?.toLowerCase() === 'paid').reduce((acc, i) => acc + i.amount, 0);
     const totalOverdue = invoices.filter(i => i.status?.toLowerCase() === 'overdue').reduce((acc, i) => acc + i.amount, 0);
+    const normalizeContractStatus = (value?: string | null) => String(value || 'active').toLowerCase();
 
     // Fetch data wrapper
     const refreshData = async () => {
@@ -160,6 +161,8 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
         setInvoices(initialInvoices || []);
     }, [initialContract, initialInvoices]);
 
+    const agreementDefaults = (editingItem?.agreementPayloadJson || {}) as Record<string, any>;
+
     // --- Handlers ---
 
     const handleCreateContract = async (e: React.FormEvent) => {
@@ -172,7 +175,27 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
             currency: 'SAR', // Default
             startDate: formData.get('startDate') as string,
             endDate: formData.get('endDate') as string || null,
-            status: 'active'
+            status: 'active',
+            agreementLocale: formData.get('agreementLocale') as string || 'ar',
+            agreementPayloadJson: {
+                counterpartyName: (formData.get('counterpartyName') as string || '').trim() || undefined,
+                counterpartyRepresentative: (formData.get('counterpartyRepresentative') as string || '').trim() || undefined,
+                serviceDescription: (formData.get('serviceDescription') as string || '').trim() || undefined,
+                paymentTerms: (formData.get('paymentTerms') as string || '').trim() || undefined,
+                termDescription: (formData.get('termDescription') as string || '').trim() || undefined,
+                governingLaw: (formData.get('governingLaw') as string || '').trim() || undefined,
+                jurisdiction: (formData.get('jurisdiction') as string || '').trim() || undefined,
+                specialTerms: (formData.get('specialTerms') as string || '').trim() || undefined,
+                signerName: (formData.get('signerName') as string || '').trim() || undefined,
+                signerTitle: (formData.get('signerTitle') as string || '').trim() || undefined,
+                includeConfidentiality: formData.get('includeConfidentiality') === 'on',
+                includeDataProtection: formData.get('includeDataProtection') === 'on',
+                includeIntellectualProperty: formData.get('includeIntellectualProperty') === 'on',
+                includeTermination: formData.get('includeTermination') === 'on',
+                includeForceMajeure: formData.get('includeForceMajeure') === 'on',
+                includeNotices: formData.get('includeNotices') === 'on',
+                isBilingual: formData.get('isBilingual') === 'on',
+            }
         };
 
         if (editingItem) {
@@ -398,7 +421,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
                                                             {overallStatus === 'PENDING' && <Badge variant="warning">{t('pending_approval')}{steps.length > 1 ? ` (${steps.findIndex((s: ApprovalInfo) => s.status === 'PENDING') + 1}/${steps.length})` : ''}</Badge>}
                                                             {overallStatus === 'APPROVED' && <Badge variant="success">{t('approved')}</Badge>}
                                                             {overallStatus === 'REJECTED' && <Badge variant="danger">{t('rejected')}</Badge>}
-                                                            <Badge variant={contract.status === 'active' ? 'success' : 'neutral'}>{contract.status}</Badge>
+                                                            <Badge variant={normalizeContractStatus(contract.status) === 'active' ? 'success' : 'neutral'}>{normalizeContractStatus(contract.status)}</Badge>
                                                         </>
                                                     );
                                                 })()}
@@ -420,6 +443,16 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
                                                             )}
                                                             {!hasPending && (
                                                                 <Button variant="ghost" size="sm" className="text-cyan-400" onClick={() => handleRequestApproval('CONTRACT', contract.id)}><Send className="w-4 h-4 mr-1" /> {t('request_approval')}</Button>
+                                                            )}
+                                                            {contract.agreementDownloadUrl && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="text-[hsl(var(--brand-success))]"
+                                                                    onClick={() => window.open(contract.agreementDownloadUrl, '_blank', 'noopener,noreferrer')}
+                                                                >
+                                                                    <Download className="w-4 h-4 mr-1" /> {t('download')}
+                                                                </Button>
                                                             )}
                                                             <Button variant="ghost" size="sm" onClick={() => openEditContract(contract)}><Edit className="w-4 h-4" /></Button>
                                                             <Button variant="ghost" size="sm" className="text-rose-400 hover:text-rose-300" onClick={() => handleDeleteContract(contract.id)}><Trash2 className="w-4 h-4" /></Button>
@@ -521,7 +554,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
                                     </div>
                                     <div className="text-right">
                                         <p className="text-sm font-medium text-white">{formatSAR(i.amount)}</p>
-                                        <span className={`text-xs ${i.status === 'paid' ? 'text-[hsl(var(--brand-success))]' : i.status === 'overdue' ? 'text-rose-400' : 'text-[hsl(var(--brand-warning))]'}`}>{i.status}</span>
+                                        <span className={`text-xs ${i.status?.toLowerCase() === 'paid' ? 'text-[hsl(var(--brand-success))]' : i.status?.toLowerCase() === 'overdue' ? 'text-rose-400' : 'text-[hsl(var(--brand-warning))]'}`}>{i.status?.toLowerCase()}</span>
                                     </div>
                                 </div>
                             ))}
@@ -555,11 +588,109 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
                     <Input name="title" label={t('contract_title')} defaultValue={editingItem?.title} required />
                     <div className="grid grid-cols-2 gap-4">
                         <Input name="amount" type="number" label={t('amount_sar')} defaultValue={editingItem?.amount} required />
-                        <Input name="status" label={t('status')} defaultValue={editingItem?.status || 'active'} /> {/* Should be select */}
+                        <Select name="status" label={t('status')} defaultValue={normalizeContractStatus(editingItem?.status)}>
+                            <option value="active">{t('active')}</option>
+                            <option value="completed">{t('completed')}</option>
+                            <option value="cancelled">{t('cancelled') || 'Cancelled'}</option>
+                        </Select>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <Input name="startDate" type="date" label={t('start_date')} defaultValue={editingItem?.startDate ? new Date(editingItem.startDate).toISOString().split('T')[0] : ''} required />
                         <Input name="endDate" type="date" label={t('end_date')} defaultValue={editingItem?.endDate ? new Date(editingItem.endDate).toISOString().split('T')[0] : ''} />
+                    </div>
+                    <div className="rounded-xl border border-slate-700/60 bg-slate-900/40 p-4 space-y-4">
+                        <div>
+                            <p className="text-sm font-semibold text-white">Agreement Builder</p>
+                            <p className="text-xs text-slate-400 mt-1">
+                                Fill these fields to generate a Saudi-law agreement draft with automated PDF output.
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <Select name="agreementLocale" label="Agreement Language" defaultValue={agreementDefaults.agreementLocale || 'ar'}>
+                                <option value="ar">Arabic</option>
+                                <option value="en">English</option>
+                            </Select>
+                            <Input name="counterpartyName" label="Counterparty Legal Name" defaultValue={agreementDefaults.counterpartyName || ''} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <Input name="counterpartyRepresentative" label="Counterparty Representative" defaultValue={agreementDefaults.counterpartyRepresentative || ''} />
+                            <Input name="signerName" label="Your Signatory Name" defaultValue={agreementDefaults.signerName || ''} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <Input name="signerTitle" label="Your Signatory Title" defaultValue={agreementDefaults.signerTitle || ''} />
+                            <Input name="jurisdiction" label="Jurisdiction" defaultValue={agreementDefaults.jurisdiction || 'The competent courts of Saudi Arabia'} />
+                        </div>
+                        <Input name="governingLaw" label="Governing Law" defaultValue={agreementDefaults.governingLaw || 'The laws and regulations of the Kingdom of Saudi Arabia'} />
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-1">Service Description</label>
+                            <textarea
+                                name="serviceDescription"
+                                rows={3}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white"
+                                defaultValue={agreementDefaults.serviceDescription || ''}
+                                placeholder="Describe the work, deliverables, and scope to appear in the agreement."
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-1">Payment Terms</label>
+                            <textarea
+                                name="paymentTerms"
+                                rows={3}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white"
+                                defaultValue={agreementDefaults.paymentTerms || ''}
+                                placeholder="Installments, milestones, invoicing cadence, late fees, or other payment terms."
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-1">Term Description</label>
+                            <textarea
+                                name="termDescription"
+                                rows={3}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white"
+                                defaultValue={agreementDefaults.termDescription || ''}
+                                placeholder="Describe the contract term or milestones."
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-1">Special Terms</label>
+                            <textarea
+                                name="specialTerms"
+                                rows={4}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white"
+                                defaultValue={agreementDefaults.specialTerms || ''}
+                                placeholder="Any optional legal or commercial clauses."
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <label className="flex items-center gap-2 text-sm text-slate-300">
+                                <input type="checkbox" name="includeConfidentiality" defaultChecked={agreementDefaults.includeConfidentiality !== false} />
+                                Include confidentiality
+                            </label>
+                            <label className="flex items-center gap-2 text-sm text-slate-300">
+                                <input type="checkbox" name="includeDataProtection" defaultChecked={agreementDefaults.includeDataProtection !== false} />
+                                Include data protection
+                            </label>
+                            <label className="flex items-center gap-2 text-sm text-slate-300">
+                                <input type="checkbox" name="includeIntellectualProperty" defaultChecked={agreementDefaults.includeIntellectualProperty !== false} />
+                                Include intellectual property
+                            </label>
+                            <label className="flex items-center gap-2 text-sm text-slate-300">
+                                <input type="checkbox" name="includeTermination" defaultChecked={agreementDefaults.includeTermination !== false} />
+                                Include termination
+                            </label>
+                            <label className="flex items-center gap-2 text-sm text-slate-300">
+                                <input type="checkbox" name="includeForceMajeure" defaultChecked={agreementDefaults.includeForceMajeure !== false} />
+                                Include force majeure
+                            </label>
+                            <label className="flex items-center gap-2 text-sm text-slate-300">
+                                <input type="checkbox" name="includeNotices" defaultChecked={agreementDefaults.includeNotices !== false} />
+                                Include notices
+                            </label>
+                            <label className="flex items-center gap-2 text-sm text-slate-300">
+                                <input type="checkbox" name="isBilingual" defaultChecked={agreementDefaults.isBilingual !== false} />
+                                Generate bilingual agreement
+                            </label>
+                        </div>
                     </div>
                     <div className="flex justify-end gap-3 mt-6">
                         <Button type="button" variant="ghost" onClick={() => setIsContractModalOpen(false)}>{t('cancel')}</Button>

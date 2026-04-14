@@ -566,14 +566,22 @@ export interface Invoice {
 }
 
 export interface Contract {
-  id: string;
-  projectId: string;
-  amount: number;
-  currency: string;
-  startDate: string;
-  endDate: string;
-  status: 'draft' | 'active' | 'completed';
-}
+    id: string;
+    projectId: string;
+    amount: number;
+    currency: string;
+    startDate: string;
+    endDate: string;
+    status: 'draft' | 'active' | 'completed' | 'cancelled';
+    agreementLocale?: string;
+    agreementStatus?: string;
+    agreementDownloadUrl?: string;
+    agreementPayloadJson?: Record<string, unknown>;
+    agreementPdfFileAssetId?: string;
+    agreementGeneratedAt?: string;
+    agreementSignedAt?: string;
+    agreementSignedById?: string;
+  }
 
 export interface CommentMessage {
   id: string;
