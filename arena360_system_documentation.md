@@ -1,497 +1,543 @@
-# Arena360 — System Documentation
-
-> **Purpose:** End-to-end system documentation, feature inventory, operational flows, and competitive positioning for presentation and stakeholder reference.
-
----
-
-## 1. System Overview
-
-**Arena360** is a **full-stack, multi-tenant project management and operations platform** for **digital agencies, IT service companies, and consultancy firms** that manage multiple clients, projects, and teams.
-
-The platform is a **centralized command center** where internal teams (project managers, developers, finance) and external stakeholders (clients) collaborate on projects, track deliverables, manage financials, log and resolve quality findings, generate reports, track time, automate workflows, collect payments, and integrate with third-party tools — all from a **single, role-aware interface**.
-
-### Core Philosophy
-
-| Aspect | Description |
-|--------|-------------|
-| **Target Market** | B2B service companies managing client portfolios |
-| **Architecture** | Full-stack monolith with clear frontend/backend separation |
-| **Multi-Tenancy** | Multiple organizations per deployment with full data isolation |
-| **Client Orientation** | Dual-persona: internal operations + external client portal |
-| **Design Language** | Dark/light theme, glassmorphism, modern SaaS aesthetic |
-
----
-
-## 2. Technology Stack
-
-| Layer | Technology | Purpose |
-|-------|------------|---------|
-| **Frontend** | React 18 + TypeScript | Single-page application |
-| **Bundler** | Vite | Fast development and build |
-| **Routing** | React Router v6 (HashRouter) | Client-side navigation |
-| **Styling** | Tailwind CSS | Utility-first CSS |
-| **Charts** | Recharts | Dashboards and analytics |
-| **Calendar** | FullCalendar | Tasks and milestones |
-| **Gantt** | react-frappe-gantt | Timeline view |
-| **i18n** | react-i18next | English / Arabic, RTL |
-| **Notifications** | react-hot-toast + in-app drawer | Toasts and notification center |
-| **Backend** | NestJS (Node.js) | REST API server |
-| **ORM** | Prisma | Database access |
-| **Database** | PostgreSQL 15+ | Relational store |
-| **Auth** | JWT + bcrypt + TOTP (speakeasy) | Login, 2FA |
-| **SSO** | Google OAuth 2.0, SAML | Org-level SSO |
-| **Email** | Resend | Invites, password reset |
-| **Rate Limiting** | @nestjs/throttler | Request throttling |
-| **API Docs** | Swagger (OpenAPI) | Interactive docs at `/api-docs` |
-| **File Storage** | Local `uploads/` or MinIO (S3-compatible) | Uploads and reports |
-| **Report Generation** | pptxgenjs, pdfkit | PPTX and PDF |
-| **Payments** | Stripe | Invoice payment and webhooks |
-| **AI** | OpenAI API (optional) | Summaries, suggestions, chat |
-| **Real-time** | Socket.IO | WebSocket notifications |
-| **Audit** | Custom AuditInterceptor | Action logging |
+# Arena360 System Documentation
+
+> Purpose: a detailed, current-state guide to what Arena360 is, what it does, and how each role uses it.
+
+## 1. What Arena360 Is
+
+Arena360 is a multi-tenant operations platform for agencies, consultancies, IT service companies, and internal delivery teams that need to manage clients, projects, finances, quality work, and collaboration in one place.
+
+It brings together:
+- client relationship management
+- project and task delivery
+- time tracking and work planning
+- quality findings and reporting
+- contract and invoice workflows
+- automation, approvals, notifications, and SLA tracking
+- admin controls, analytics, wiki knowledge, and workspace templates
+- a client portal for external stakeholders
+
+The system is designed to reduce tool sprawl. Instead of keeping delivery in one app, billing in another, and reporting in a spreadsheet, Arena360 gives teams a shared operational workspace with role-aware access.
+
+## 2. What The System Helps Organizations Do
+
+Arena360 helps organizations:
+- track work from lead or client onboarding through delivery and billing
+- keep internal staff and clients working in the same platform without exposing private data
+- standardize how projects, tasks, updates, and approvals flow through the business
+- improve visibility into deadlines, risks, finances, and client-facing progress
+- keep an audit trail of major actions for operational control
+- automate repetitive work such as notifications, emails, status changes, and webhooks
+- centralize reports, approvals, and documentation
+- support multiple organizations in one deployment with org-level settings and branding
+
+## 3. Product Shape
+
+Arena360 is organized around four main experiences:
+- internal dashboards for operations, project managers, development, finance, and admin users
+- client dashboards and client-scoped project views
+- project detail pages with rich tabs for delivery, collaboration, finance, and reporting
+- admin and configuration screens for roles, templates, org settings, integrations, and automation
+
+## 4. Technology Snapshot
+
+Arena360 is built with:
+- React 18 + TypeScript on the frontend
+- Vite for the client build
+- NestJS on the backend
+- Prisma with PostgreSQL for data access
+- JWT authentication with bcrypt passwords and TOTP 2FA
+- Google SSO and SAML SSO
+- Resend for transactional email
+- Stripe for payment flows
+- Socket.IO for live notifications
+- Tailwind CSS, Recharts, FullCalendar, and react-frappe-gantt for the UI
+- pptxgenjs and pdfkit for report generation
+- Swagger support on the API
+- local uploads or MinIO-compatible storage for files and exports
+
+## 5. Role Model
+
+Arena360 uses nine roles:
+- internal roles: `SUPER_ADMIN`, `OPS`, `PM`, `DEV`, `QA`, `FINANCE`
+- client roles: `CLIENT_OWNER`, `CLIENT_MANAGER`, `CLIENT_MEMBER`, `VIEWER`
+
+The platform is role-aware. That means:
+- different roles land on different dashboards
+- different roles see different tabs in projects
+- internal and external users get different data visibility
+- permissions can be controlled by role defaults and org-specific overrides
+
+## 6. Role Capabilities
+
+### 6.1 SUPER_ADMIN
+
+The Super Admin has the broadest access and is the top-level platform operator.
+
+They can:
+- manage all platform users
+- manage roles and role defaults
+- edit org settings, branding, and SSO configuration
+- view all main dashboards and analytics
+- access client, project, finance, reporting, wiki, automation, integrations, and admin screens
+- adjust workspace and report templates
+- review notifications, approvals, and audit activity
+- impersonate users for support and troubleshooting
+
+### 6.2 OPS
+
+Operations users coordinate the day-to-day delivery engine.
+
+They can:
+- manage clients and projects
+- work across tasks, milestones, team assignment, and delivery follow-up
+- review finance data and operational KPIs
+- participate in approvals for reports, contracts, and invoices
+- view analytics, notifications, automations, and SLA activity
+- support client-facing workflows while still seeing internal operational data
+
+### 6.3 PM
+
+Project Managers focus on project execution and delivery coordination.
+
+They can:
+- create and manage projects
+- assign tasks and track progress
+- manage milestones, updates, discussions, and team coordination
+- monitor risk, health, and readiness indicators
+- review reports, findings, and project progress
+- use timelines, sprints, recurring tasks, and calendar views
+- participate in approvals where the workflow allows it
+
+### 6.4 DEV
+
+Developers get a focused execution view.
+
+They can:
+- view the developer dashboard with task KPIs
+- work on assigned tasks
+- update task status and collaborate through project updates and discussions
+- track time against their tasks
+- review findings, files, and project context
+- use the AI tools where enabled
+- access only the tabs and permissions that match their role and workspace configuration
+
+### 6.5 QA
 
----
-
-## 3. User Types & Roles
-
-Arena360 uses a **9-role** permission model in two groups: internal (staff) and external (client).
-
-### 3.1 Internal Roles (Staff)
-
-| Role | Description | Key Permissions |
-|------|-------------|-----------------|
-| **SUPER_ADMIN** | System administrator | All permissions; users, SSO, admin panel |
-| **OPS** | Operations manager | Clients, projects, financials, tasks, team |
-| **PM** | Project Manager | Projects, clients, tasks, team (no financials) |
-| **DEV** | Developer | Dashboard, clients, own tasks |
-| **FINANCE** | Financial officer | Dashboard, financials, clients (read-heavy) |
-
-### 3.2 External Roles (Client)
-
-| Role | Description | Key Permissions |
-|------|-------------|-----------------|
-| **CLIENT_OWNER** | Client org owner | Dashboard, clients, financials for own org |
-| **CLIENT_MANAGER** | Client manager | Dashboard and client-scoped data |
-| **CLIENT_MEMBER** | Client member | Dashboard only |
-| **VIEWER** | Read-only guest | Dashboard only |
-
-### 3.3 Permission Matrix
-
-| Permission | SUPER_ADMIN | OPS | PM | DEV | FINANCE | CLIENT_OWNER | CLIENT_MANAGER | CLIENT_MEMBER | VIEWER |
-|------------|:-----------:|:--:|:--:|:---:|:-------:|:------------:|:--------------:|:-------------:|:------:|
-| VIEW_DASHBOARD | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| VIEW_CLIENTS | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| MANAGE_CLIENTS | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| MANAGE_PROJECTS | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| MANAGE_TASKS | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| MANAGE_TEAM | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| VIEW_FINANCIALS | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| MANAGE_USERS | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| VIEW_ADMIN | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-
-Custom permissions allow per-user overrides on top of role defaults.
-
----
-
-## 4. Features (Detailed)
-
-### 4.1 Authentication & Authorization
-
-- **JWT login** with email/password (bcrypt)
-- **Two-Factor Authentication (2FA)** — TOTP setup, verify at login, disable with password
-- **Forgot password** — Email reset link (hashed token, 1-hour expiry, single-use) via Resend
-- **Reset password** — Dedicated page; token from URL; backend validates and updates password
-- **Google SSO** — Per-org OAuth; login and callback with org in state
-- **SAML SSO** — Metadata, authorize URL, callback; find-or-create user from SAML; Settings: entry point, issuer, IdP cert
-- **Invite-based onboarding** — Invite links (SHA-256 hashed tokens, expiry, single-use)
-- **Role-based protection** — Frontend routes and backend JWT + guards
-- **User impersonation** — Super Admins can impersonate for support
-- **Org-scoped isolation** — All data scoped by `orgId`
-- **Rate limiting** — Stricter limits on login, 2FA, forgot/reset password, accept-invite
-
----
-
-### 4.2 Multi-Tenancy & Onboarding
-
-- **Multiple organizations** — Org creation (e.g. POST /org, signup-org flow); full data isolation per org
-- **Onboarding wizard** — Guided steps for new orgs; GET/PATCH onboarding-status; dismiss for SUPER_ADMIN
-- **Org settings** — Name, slug, logo, primary/accent colors, usage, SSO config
-
----
-
-### 4.3 Dashboard (Role-Adaptive)
-
-Dashboards are **role-specific**: Admin, Developer, Finance, and Client.
-
-- **Admin (SUPER_ADMIN, OPS, PM):** KPIs (clients, projects, revenue, overdue tasks), revenue chart, latest updates, projects at risk, pending approvals, quick actions
-- **Developer (DEV):** My open tasks, due soon, in review, overdue; task list with project link
-- **Finance (FINANCE):** Financial KPIs, revenue, outstanding, invoices due
-- **Client (CLIENT_*):** Client-scoped projects, status, and CLIENT-visible updates
-
-**Dashboard customization:** Users can show/hide widgets and reorder them via “Customize dashboard” (stored in `dashboardPreferences`).
-
----
-
-### 4.4 Client Management (CRM)
-
-- **Full lifecycle** — List, create, edit, archive; search and filter by status
-- **Client detail** — Profile (logo, contact, industry), billing (currency, VAT, tax ID), revenue YTD, outstanding balance
-- **Files** — Upload, download (presigned), categorize, visibility (Internal/Client)
-- **Members** — Add/remove client users; CLIENT_OWNER / CLIENT_MANAGER / CLIENT_MEMBER
-- **Projects** — List of projects for the client
-- **Statuses:** ACTIVE, INACTIVE, LEAD, ARCHIVED
-
----
-
-### 4.5 Project Management
-
-**CRUD:** Create (name, client, description, status, budget, dates, tags), edit, archive. List with search and filters.
-
-**Statuses:** PLANNING, IN_PROGRESS, TESTING, DEPLOYED, MAINTENANCE, ACTIVE, ON_HOLD, COMPLETED, ARCHIVED  
-**Health:** GOOD, AT_RISK, CRITICAL
-
-**Project detail — tabs:**
-
-| Tab | Content |
-|-----|---------|
-| **Overview** | Description, status, health, progress, dates, budget, tags, metrics |
-| **Tasks** | Kanban (Backlog, To Do, In Progress, Review, Done); create/edit/delete; assign; priority; due date; labels; link to milestones |
-| **Time** | Time entries per task (date, minutes, billable, note); CRUD |
-| **Timeline** | Gantt (react-frappe-gantt) for tasks |
-| **Sprints** | Create/edit/delete sprints; backlog vs sprint tasks; assign tasks to sprint |
-| **Recurring tasks** | Templates (title, recurrence rule, next run); cron creates tasks; enable/disable |
-| **Milestones** | Create/edit/delete; status; percent complete; owner; due date |
-| **Updates** | Status updates; visibility INTERNAL/CLIENT; author and timestamp |
-| **Files** | Upload/download/delete; categories; visibility |
-| **Findings** | Project findings; link to QA module |
-| **Reports** | Create reports; generate PPTX/PDF; download |
-| **Financials** | Contracts and invoices; Pay with Card (Stripe); multi-step approvals |
-| **Team** | Add/remove members; change roles |
-| **Discussions** | Threaded discussions; replies; delete |
-| **Activity** | Activity feed for the project |
-
----
-
-### 4.6 Task Management
-
-- **Fields:** Title, description, status, priority, assignee, due date, labels, milestone, sprint, story points
-- **Workflow:** BACKLOG → TODO → IN_PROGRESS → REVIEW → DONE
-- **Task dependencies** — Predecessor/successor; add/remove; list for project
-- **Recurring tasks** — Tasks created from templates (link via `sourceRecurringId`)
-- **My Work** — Tasks assigned to current user; KPIs (open, due soon, in review, overdue); filters; navigate to project
-
----
-
-### 4.7 Findings / QA Module
-
-- **List** — All findings; filter by severity/status; search
-- **Detail** — Severity (Low, Medium, High, Critical); status (Open → In Progress → In Review → Closed/Dismissed); visibility; assignment; evidence (files); comments; timeline
-- **AI** — Optional “Analyze finding” (remediation, severity) when OpenAI is configured
-
----
-
-### 4.8 Reporting & Export
-
-- **Report list** — Search and type filters
-- **Report generation** — Backend builds PPTX (pptxgenjs) and PDF (pdfkit) from project data; store under uploads; download by report ID
-- **Templates** — ReportTemplate model and template support
-- **CSV export** — Findings, tasks (by project), invoices (by project); export buttons on list views
-
----
-
-### 4.9 Financial Management
-
-- **Contracts** — Amount, currency (default SAR), dates, status (Active/Completed/Cancelled)
-- **Invoices** — Number, amount, due date, status (Draft/Issued/Paid/Overdue); link to contract
-- **Stripe payments** — Create payment intent; “Pay with Card” + Stripe Elements in Financials tab; webhook for payment_intent.succeeded
-- **Approvals** — Multi-step approval for reports, invoices, contracts; approve/reject with comment
-- **Access** — SUPER_ADMIN, OPS, FINANCE, CLIENT_OWNER (scoped)
-
----
-
-### 4.10 File Management
-
-- **Storage** — Local `uploads/` or MinIO (S3-compatible)
-- **Scopes** — Client, project, finding
-- **Categories** — Docs, Designs, Builds, Logo, Evidence, Other
-- **Visibility** — Internal or Client
-- **Operations** — Upload, download (presigned), delete; metadata (name, type, size, uploader)
-
----
-
-### 4.11 User Management & Administration
-
-- **Users Admin (SUPER_ADMIN)** — List, search, filter, create, edit role, activate/deactivate
-- **Roles Admin** — Role definitions and permission matrix
-- **Invites** — Invite links with hashed token and expiry; email via Resend
-- **Custom permissions** — Per-user overrides (role + customPermissions)
-
----
-
-### 4.12 Notifications & Real-Time
-
-- **In-app notifications** — List, mark read, mark all read; preferences (email vs in-app)
-- **WebSocket** — Gateway emits on notification create; frontend socket in Layout; live updates in notification drawer
-- **Drawer** — Header bell; unread count; list with link to entity
-
----
-
-### 4.13 Workflow Automation & Approvals
-
-- **Automation rules** — Entity/event (e.g. task or finding created/status changed); conditions; actions (e.g. notify, assign); CRUD; active/inactive
-- **Condition builder** — Configurable trigger conditions in Automations UI
-- **Approval requests** — Multi-step (stepOrder, approverId); create with steps array; approve/reject enforces current step; used for reports, invoices, contracts in Financials tab
-
----
-
-### 4.14 Integrations & Webhooks
-
-- **Integrations** — Slack, GitHub; config per integration (URLs, tokens)
-- **Slack** — Test connection; optional notifications
-- **GitHub** — Create issues from findings/tasks
-- **Webhooks** — Outbound: URL, secret, events; payload delivery
-
----
-
-### 4.15 Custom Fields, SLA, Wiki
-
-- **Custom fields** — Definitions (Project/Task/Client, key, label, type, options); values per entity; CRUD API
-- **SLA** — Policies (Task/Finding/Invoice, target hours, client scope); trackers; breach check endpoint
-- **Wiki** — Pages (slug, title, body); versioning; CRUD; get by slug or id; frontend Wiki route
-
----
-
-### 4.16 Global Search, API Docs, Security
-
-- **Search** — GET `/search?q=...&limit=...` across projects, tasks, clients, findings; frontend Ctrl+K command palette; navigate to result
-- **API documentation** — Swagger at `/api-docs`
-- **Rate limiting** — Global (e.g. 100/60s); stricter on auth routes (e.g. 5/min)
-- **Audit** — AuditInterceptor logs mutating calls; actor, action, entity, before/after, request ID, IP, user agent; org-scoped; sensitive redaction
-
----
-
-### 4.17 AI Features (Optional)
-
-When OpenAI API key is set:
-
-- **Project summary** — AI-generated summary
-- **Suggest tasks** — AI-suggested tasks for a project
-- **Status report** — AI-generated status text
-- **Analyze finding** — Remediation and severity suggestions
-- **Chat** — Contextual chat (optional project/finding context)
-- **Frontend** — Sparkles entry point; AI context provider
-
----
-
-### 4.18 Custom Branding & Changelog
-
-- **Branding** — Public GET org-by-slug returns name, logo, primaryColor, accentColor, SSO flags; Login and app Layout apply logo and colors
-- **Changelog** — GET `/changelog` returns version entries; in-app Changelog modal (History icon in header)
-
----
-
-### 4.19 Performance Analytics & Backup
-
-- **Analytics** — Velocity (tasks completed per week), completion rate, total/done tasks; portfolio, team, financial, findings breakdowns; Analytics page with charts
-- **Backup** — PowerShell script (pg_dump using DATABASE_URL); docs/backup-restore.md for procedures and DR
-
----
-
-### 4.20 Settings & i18n
-
-- **Settings** — Profile (name, email, role); Security (change password, 2FA setup/verify/disable); notification preferences; theme (dark/light)
-- **i18n** — English and Arabic; RTL for Arabic; language toggle; translation coverage for UI
-
----
-
-## 5. Operational Flows
-
-### 5.1 Onboarding a New Client
-
-```
-Admin creates Client → Profile and billing → Upload logo →
-Add client users (invites) → Client users accept invite & set password →
-Client appears as ACTIVE → Client users see Client Dashboard and their projects
-```
-
-### 5.2 Onboarding a New Organization (Multi-Tenant)
-
-```
-Signup-org (name, slug, admin email, password) → Org created →
-Admin logs in → Onboarding wizard (optional) → Configure SSO/branding →
-Invite members → Create clients and projects
-```
-
-### 5.3 Project Lifecycle
-
-```
-PM creates Project → Client, budget, dates → Add team →
-Milestones and tasks → Sprints (optional) → Recurring task templates (optional) →
-Team logs time → Status updates → Findings → Reports generated →
-Contract and invoices → Approvals → Stripe payment (optional) →
-Project status → COMPLETED
-```
-
-### 5.4 Task Workflow
-
-```
-Task created (BACKLOG) → Assign to developer → TODO → IN_PROGRESS →
-Time entries logged → REVIEW → DONE (automation/notifications can trigger at each step)
-```
-
-### 5.5 Finding Resolution
-
-```
-Finding created → Severity and assignee → Evidence and comments →
-Status: In Progress → In Review → Closed (optional: AI analyze, GitHub issue)
-```
-
-### 5.6 Financial Flow
-
-```
-Contract created → Invoices issued → Client sees Financials →
-“Pay with Card” → Stripe Payment Intent → Webhook marks invoice PAID →
-Approval steps (if configured) for contract/report/invoice
-```
-
-### 5.7 Client Portal
-
-```
-Client user logs in (or SSO) → Client Dashboard → Their projects →
-CLIENT-visible updates and files → View financials (if CLIENT_OWNER) →
-No access to internal-only content
-```
-
-### 5.8 Forgot Password
-
-```
-Forgot password → Email → Reset link (hashed token, 1h) →
-Reset password page → New password → Backend validates, updates →
-Redirect to login
-```
-
-### 5.9 SSO (Google / SAML)
-
-```
-User selects SSO (org context) → Redirect to IdP → Consent →
-Callback → Backend finds or creates user → JWT issued →
-Redirect to app with token
-```
-
----
-
-## 6. Competitive Positioning
-
-### 6.1 Maturity Rating
-
-| Dimension | Score (1–10) | Notes |
-|-----------|--------------|--------|
-| Feature Completeness | 9/10 | Multi-tenancy, SSO, payments, workflow, analytics, backup, branding, changelog |
-| UX / Design | 8/10 | Dark/light, responsive, glassmorphism, Gantt, calendar |
-| Architecture | 7.5/10 | Clear modules, Prisma, JWT, audit, throttling, Swagger |
-| Security | 8/10 | 2FA, reset flow, Google + SAML SSO, rate limiting, RBAC |
-| Scalability | 7/10 | Multi-org; scales with DB and app servers |
-| Reporting & Analytics | 8/10 | PPT/PDF, CSV, velocity/completion analytics |
-| Integrations | 7/10 | Slack, GitHub, webhooks, Stripe, SAML IdPs |
-| Automation | 8/10 | Rules, multi-step approvals, condition builder |
-| Mobile | 4/10 | Responsive web; native app not in scope |
-| Enterprise Readiness | 8/10 | Multi-org, SAML, 2FA, audit, payments, backup, branding |
-
-**Overall: 7.6 / 10 — Enterprise-ready mid-market SaaS**
-
-### 6.2 Feature Comparison
-
-| Feature | Arena360 | Jira | Monday | Asana | ClickUp | Basecamp |
-|---------|:--------:|:----:|:------:|:-----:|:-------:|:--------:|
-| Task Management | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Kanban | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| Client Portal | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
-| Financials | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Findings / QA | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Role Dashboards | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Time Tracking | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Gantt / Timeline | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| Automation | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| Integrations | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| API Docs | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| SSO / 2FA | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| i18n / RTL | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Audit Trail | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Report Gen (PPT/PDF) | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| AI Features | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-
-### 6.3 Differentiators
-
-1. **Client portal + financials** — Native client view with contracts, invoices, and Stripe payment in one place  
-2. **Findings/QA module** — Severity, evidence, comments, AI analyze, GitHub issue creation  
-3. **Role-based dashboards** — Four dashboard types (Admin, Dev, Finance, Client) with customization  
-4. **Multi-tenancy + SSO** — Multiple orgs, Google and SAML, org-level branding  
-5. **Arabic / RTL** — Full i18n and RTL support  
-6. **Audit + security** — Before/after audit log, 2FA, rate limiting, API docs  
-7. **Workflow + automation** — Multi-step approvals and rule-based automation in one product  
-8. **Recurring tasks + analytics** — Scheduled task creation and velocity/completion analytics  
-
----
-
-## 7. Roadmap & Optional Enhancements
-
-- **Native mobile app** — Deferred; responsive web covers core use cases  
-- **Additional payment providers** — Optional (e.g. more gateways or regional methods)  
-- **Client satisfaction metrics** — Optional extension of analytics  
-- **Backup scheduling** — Use existing script and docs in cron/Task Scheduler for automated backups  
-
----
-
-## 8. Data Model (Summary)
-
-Core entity hierarchy (40+ models):
-
-```
-Org
-├── User (2FA, customPermissions, dashboardPreferences)
-│   ├── UserInvite, PasswordResetToken, UserIdentity
-│   ├── ClientMembership, ProjectMembership
-├── SSOConfig (Google, SAML)
-├── Client → ClientMember, FileAsset
-│   └── Project
-│       ├── ProjectMember, Task (sourceRecurringId), TaskDependency
-│       ├── Sprint, RecurringTaskTemplate, Milestone
-│       ├── ProjectUpdate, FileAsset, Finding (+ Comment, FileAsset)
-│       ├── Report, ReportTemplate, Contract, Invoice
-│       ├── Discussion → DiscussionReply, TimeEntry
-├── ActivityFeed, ApprovalRequest
-├── Integration, Webhook, CustomFieldDef, CustomFieldValue
-├── Notification, NotificationPreference
-├── AutomationRule, AutomationLog
-├── SLAPolicy, SLATracker
-├── WikiPage, WikiPageVersion
-└── AuditLog
-```
-
----
-
-## 9. Infrastructure & Deployment
-
-| Aspect | Details |
-|--------|---------|
-| **Local dev** | Frontend `npm run dev` (:5173), Backend `npm run start:dev` (:3000) |
-| **Database** | PostgreSQL; Prisma `db push` or migrate |
-| **Seeding** | `npx prisma db seed` |
-| **Health** | `GET /health` |
-| **API docs** | `GET /api-docs` (Swagger) |
-| **Environment** | Joi-validated .env (DATABASE_URL, JWT_SECRET, ALLOWED_ORIGINS, FRONTEND_URL, API_URL, Resend, S3_*, Stripe, OPENAI_API_KEY, etc.) |
-| **Rate limiting** | ThrottlerModule + per-route overrides |
-| **Logging** | Structured stdout; audit and redaction |
-| **Backup** | scripts/backup-db.ps1; docs/backup-restore.md |
-
----
-
-## 10. Summary
-
-| Category | Verdict |
-|----------|---------|
-| **What Arena360 is** | Multi-tenant, role-aware project management platform with CRM, financials, QA/findings, client portal, time tracking, real-time notifications, Google + SAML SSO, Stripe payments, multi-step approvals, dashboard customization, recurring tasks, backup/DR, custom branding, changelog, and velocity/completion analytics |
-| **Strengths** | Multi-org isolation, onboarding wizard, live notifications, enterprise SSO, payment collection, workflow and automation, configurable dashboards, recurring tasks, backup docs, white-label branding, in-app changelog, performance analytics, audit, 2FA, API docs, i18n |
-| **Gaps** | Native mobile (deferred); optional enhancements (e.g. more payment providers, satisfaction metrics) |
-| **Position** | Enterprise-ready mid-market SaaS with strong differentiators in tenancy, SSO, payments, workflow, and analytics |
-| **Next steps** | Schedule and test backup/restore in production; consider native mobile if required; optional analytics and payment extensions |
+Quality assurance users focus on testing, validation, and defect handling.
+
+They can:
+- view the developer-style operational dashboard
+- track findings and project quality issues
+- review task and project progress
+- work with reports and verification flows
+- inspect timelines and updates tied to quality work
+- participate in workflow and approval steps where allowed
+
+### 6.6 FINANCE
+
+Finance users handle billing and financial oversight.
+
+They can:
+- view the finance dashboard
+- inspect outstanding amounts, paid invoices, overdue invoices, and active contracts
+- review client and project finance summaries
+- manage invoice and contract workflows
+- participate in approvals
+- review finance-related notifications and audit entries
+- work with financial tabs and finance-visible project data
+
+### 6.7 CLIENT_OWNER
+
+Client owners are the top external users for a client organization.
+
+They can:
+- access the client dashboard
+- view active projects and upcoming milestones
+- see client-visible updates
+- review shared files
+- access reports and financial summaries allowed to client roles
+- participate in approvals when configured
+- view the client portal without internal-only operational data
+
+### 6.8 CLIENT_MANAGER
+
+Client managers are collaborative external users with broader client visibility.
+
+They can:
+- view the client dashboard
+- track project progress and client-visible updates
+- open shared files and relevant reports
+- see project milestones and selected financial context
+- collaborate on discussions and reviews where permitted
+- monitor delivery status for their organization
+
+### 6.9 CLIENT_MEMBER
+
+Client members have lighter visibility into the client portal.
+
+They can:
+- view a reduced dashboard
+- follow client-visible updates and selected project progress
+- open approved shared files and reports
+- monitor milestones and basic project status
+- stay informed without internal editing controls
+
+### 6.10 VIEWER
+
+Viewers are read-only external stakeholders.
+
+They can:
+- view dashboard content that is allowed to them
+- observe selected project status and shared information
+- consume approved files, reports, and updates
+- avoid any management or editing responsibility
+
+## 7. Core Modules
+
+### 7.1 Authentication and Access Control
+
+Arena360 supports:
+- email and password login
+- 2FA with TOTP
+- forgot-password and reset-password flows
+- invite-based onboarding
+- org-aware SSO entry points for Google and SAML
+- role-based route protection
+- org-scoped access control
+- impersonation for Super Admin support work
+- rate-limited sensitive auth routes
+
+### 7.2 Organization and Tenant Management
+
+Arena360 is built for organization-scoped operation.
+
+It supports:
+- org creation and setup
+- org settings for name, slug, logo, and colors
+- org usage and management screens
+- org-level SSO configuration
+- role-default permissions and org-specific overrides
+
+### 7.3 Dashboards
+
+The dashboard changes by role.
+
+Internal dashboards can show:
+- client counts
+- project counts
+- revenue and financial KPIs
+- overdue tasks
+- latest updates
+- projects at risk
+- pending approvals
+- quick-access tools
+
+Developer dashboards can show:
+- open tasks
+- due soon tasks
+- in-review tasks
+- overdue tasks
+
+Finance dashboards can show:
+- outstanding balances
+- invoices due
+- paid revenue
+- active contracts
+
+Client dashboards can show:
+- active projects
+- next milestones
+- latest client-visible updates
+- pending approvals
+- shared files
+- my projects
+
+### 7.4 Client Management
+
+Client management covers the full client lifecycle.
+
+It supports:
+- client listing, filtering, and search
+- client creation and editing
+- archive and restore flows
+- client profile data such as contact person, industry, website, and address
+- billing profile data such as currency, VAT number, and tax ID
+- client members and member roles
+- client-scoped files
+- client revenue and outstanding balance tracking
+- client activity and project association
+
+### 7.5 Project Management
+
+Project management is the center of the product.
+
+Projects support:
+- create, edit, archive, and view workflows
+- status and health tracking
+- budget and date fields
+- tags and metadata
+- role-aware project visibility
+- full project detail pages
+
+Project tabs currently include:
+- Overview
+- Tasks
+- Milestones
+- Updates
+- Files
+- Findings
+- Reports
+- Financials
+- Team
+- Discussions
+- Activity
+- Timeline
+- Sprints
+- Recurring Tasks
+- Testing / Environments
+
+### 7.6 Task Management
+
+Task management supports:
+- task creation and editing
+- status tracking
+- priority levels
+- assignees
+- due dates
+- labels
+- milestone links
+- sprint links
+- task dependencies
+- recurring task generation
+- kanban-style workflows
+
+### 7.7 Time Tracking
+
+Time tracking supports:
+- logging minutes against tasks
+- billable and non-billable work
+- viewing time entries per project or task
+- supporting internal productivity reporting
+- tying time to delivery and billing context
+
+### 7.8 Milestones, Timeline, Calendar, and Sprints
+
+These surfaces help teams plan and sequence delivery.
+
+They support:
+- milestone creation and management
+- milestone status and completion tracking
+- timeline views for project work
+- calendar views that include tasks and milestones
+- sprint creation and task assignment
+- recurring task scheduling
+
+### 7.9 Updates, Discussions, and Activity
+
+These features support collaboration and status visibility.
+
+They support:
+- posting project updates
+- marking updates as internal or client-visible
+- viewing latest updates in dashboards
+- threaded project discussions
+- reply threads and collaboration trails
+- activity feeds for major project actions
+
+### 7.10 Files
+
+File management supports:
+- uploads at client, project, or finding scope
+- categorized file storage
+- internal or client visibility
+- downloads and presigned access
+- file metadata and attribution
+
+### 7.11 Findings and QA
+
+The findings module supports:
+- issue logging
+- severity levels
+- status management
+- evidence uploads
+- comments and timelines
+- assignment and remediation tracking
+- AI analysis when enabled
+
+### 7.12 Reporting
+
+Arena360 reporting supports:
+- report list and search
+- report generation
+- report templates and template versions
+- client template assignment
+- report exports
+- downloadable outputs for project work
+- approvals around reports where required
+
+### 7.13 Financial Management
+
+The finance module supports:
+- contracts
+- invoices
+- payment tracking
+- payment integration
+- finance dashboards
+- financial summaries on client and project pages
+- approvals on finance-related workflows
+
+### 7.14 Notifications
+
+Notifications support:
+- in-app notification center
+- notification counts
+- linked navigation targets
+- client and internal delivery paths
+- email delivery for supported event categories
+- user preferences
+- notification history and read state
+
+### 7.15 Automation and Integrations
+
+Arena360 supports workflow automation and external system integration.
+
+Automation can:
+- create notifications
+- send email
+- dispatch webhooks
+- update statuses
+- assign users
+
+Integrations can:
+- connect with external services such as Slack, GitHub, and webhooks where configured
+- respond to project and operational events
+
+### 7.16 Wiki
+
+The wiki module supports:
+- page creation and editing
+- page versioning
+- internal knowledge capture
+- searchable documentation content
+
+### 7.17 SLA
+
+The SLA layer supports:
+- policy configuration
+- tracker creation
+- breach checks
+- lifecycle-driven status updates
+- operational follow-up on overdue work
+
+### 7.18 Analytics and Admin
+
+Analytics support:
+- portfolio health
+- task completion
+- financial summaries
+- findings severity and closure metrics
+
+Admin surfaces support:
+- user management
+- role editing
+- role permissions
+- org and workspace templates
+- report templates
+- integrations
+- automation rules
+
+### 7.19 Workspace Templates and Tab Visibility
+
+Arena360 uses workspace configuration to control what tabs appear for which role and which audience.
+
+This supports:
+- internal and client-specific workspace behavior
+- read-only versus interactive tab states
+- template-driven project layouts
+- safer role-based presentation without exposing everything everywhere
+
+## 8. What Each Role Typically Sees In Practice
+
+### SUPER_ADMIN
+- full dashboards and admin views
+- all clients and projects
+- finance, reports, automation, wiki, integrations, analytics
+- role and org settings
+
+### OPS
+- operational dashboard
+- clients, projects, finance, approvals, analytics
+- delivery coordination and workflow control
+
+### PM
+- projects, tasks, milestones, updates, team, reports, discussions
+- project-level finance visibility where allowed
+- timeline, sprint, recurring work, and readiness views
+
+### DEV
+- assigned tasks and project context
+- updates, discussions, files, findings, and time tracking
+- limited internal visibility focused on execution
+
+### QA
+- findings, validation work, task context, and project quality surfaces
+- reporting and review-driven workflows
+
+### FINANCE
+- financial dashboards and finance tabs
+- contracts, invoices, approvals, and client finance context
+
+### CLIENT_OWNER / CLIENT_MANAGER / CLIENT_MEMBER / VIEWER
+- client dashboard
+- client-visible project updates
+- shared files
+- visible reports and milestones
+- approved financial or collaboration views as configured
+
+## 9. How Arena360 Fits Into An Organization
+
+Arena360 works best when an organization needs:
+- one system for delivery and client communication
+- one source of truth for project status
+- role-based separation between internal and external users
+- financial visibility tied to projects
+- quality tracking tied to delivery
+- automation for repetitive coordination work
+- auditability for management and support
+
+It is especially useful for:
+- digital agencies
+- software consultancies
+- IT service providers
+- product delivery teams with multiple client accounts
+
+## 10. Current Product State
+
+The platform is feature-rich and much more than an MVP.
+
+At the same time, the current repo still treats some work as go-live hardening rather than finished launch polish. The most important remaining work is:
+- end-to-end testing
+- permissions audit
+- deployment and backup verification
+- production monitoring and alerting
+- final parity cleanup on the remaining tracked items
+
+That means Arena360 is a strong production candidate, but the safest way to describe it today is:
+- more complete than an MVP
+- close to production
+- still needing final operational hardening before broad rollout
+
+## 11. Summary
+
+Arena360 is a unified operating system for client delivery teams.
+
+It combines:
+- client management
+- project execution
+- time and milestone tracking
+- reporting and finance
+- notifications and automation
+- analytics and admin control
+- a client portal for external stakeholders
+
+The result is a platform that helps organizations manage work, visibility, accountability, and client communication from one coordinated system.
