@@ -1,0 +1,2 @@
+ALTER TABLE "Org"
+ADD COLUMN IF NOT EXISTS "rolePermissionsJson" JSONB;
