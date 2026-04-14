@@ -6,6 +6,7 @@ import { AuthController } from '../src/auth/auth.controller';
 import { AuthService } from '../src/auth/auth.service';
 import { SsoService } from '../src/auth/sso.service';
 import { ConfigService } from '@nestjs/config';
+import { OperationalAlertsService } from '../src/common/operational-alerts.service';
 
 describe('Auth routes (e2e)', () => {
   let app: INestApplication<App>;
@@ -40,6 +41,10 @@ describe('Auth routes (e2e)', () => {
     }),
   };
 
+  const alertsMock = {
+    alertOrg: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -49,6 +54,7 @@ describe('Auth routes (e2e)', () => {
         { provide: AuthService, useValue: authServiceMock },
         { provide: SsoService, useValue: ssoServiceMock },
         { provide: ConfigService, useValue: configMock },
+        { provide: OperationalAlertsService, useValue: alertsMock },
       ],
     }).compile();
 
@@ -57,7 +63,9 @@ describe('Auth routes (e2e)', () => {
   });
 
   afterEach(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it('POST /auth/login returns a token for valid credentials', async () => {

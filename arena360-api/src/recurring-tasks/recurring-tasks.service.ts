@@ -9,6 +9,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { ActivityService } from '../activity/activity.service';
 import { AutomationService } from '../automation/automation.service';
 import { SlaService } from '../sla/sla.service';
+import { OperationalAlertsService } from '../common/operational-alerts.service';
 
 @Injectable()
 export class RecurringTasksService {
@@ -18,6 +19,7 @@ export class RecurringTasksService {
     private activity: ActivityService,
     private automation: AutomationService,
     private sla: SlaService,
+    private alerts: OperationalAlertsService,
   ) {}
 
   private readonly internalNoticeRoles = ['SUPER_ADMIN', 'OPS', 'PM', 'DEV', 'QA', 'FINANCE'];
@@ -207,6 +209,17 @@ export class RecurringTasksService {
       } catch (err) {
         // Log but don't fail other templates
         console.error(`RecurringTasksService: failed to process template ${t.id}`, err);
+        await this.alerts.alertOrg(
+          t.project.orgId,
+          'Recurring task job failed',
+          `Recurring task template "${t.title}" failed to process: ${err instanceof Error ? err.message : String(err)}`,
+          {
+            source: 'recurring-tasks.job',
+            entityType: 'recurring-task',
+            entityId: t.id,
+            metadata: { projectId: t.projectId, templateId: t.id },
+          },
+        );
       }
     }
   }

@@ -41,9 +41,11 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { RecurringTasksModule } from './recurring-tasks/recurring-tasks.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER } from '@nestjs/core';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
+import { OperationalExceptionFilter } from './common/filters/operational-exception.filter';
 
 @Module({
   imports: [
@@ -116,6 +118,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
   providers: [
     AppService,
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+    { provide: APP_FILTER, useClass: OperationalExceptionFilter },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })

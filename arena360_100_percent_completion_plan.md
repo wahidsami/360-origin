@@ -18,10 +18,10 @@ Arena360 is considered 100% complete for a controlled production rollout only wh
 Freeze the target feature set so we stop changing the finish line while we finish the platform.
 
 ### Work
-- [ ] Mark the current feature set as the release baseline.
-- [ ] Decide whether any remaining generic report workflow work stays in scope or is explicitly deferred.
-- [ ] Freeze the project tab model, admin surfaces, and finance surfaces that should ship in the same release.
-- [ ] Record the final “done” definition for each major module.
+- [x] Mark the current feature set as the release baseline.
+- [x] Decide whether any remaining generic report workflow work stays in scope or is explicitly deferred.
+- [x] Freeze the project tab model, admin surfaces, and finance surfaces that should ship in the same release.
+- [x] Record the final “done” definition for each major module.
 
 ### Done Criteria
 - A single source of truth exists for the release scope.
@@ -86,11 +86,11 @@ Make the system safe to operate in a real environment.
 - [x] Run a real database backup and restore drill.
 - [x] Run a real file-storage backup and restore drill.
 - [x] Verify migrations can be applied safely on the target deployment.
-- [ ] Add or verify monitoring for API failures, auth failures, jobs, emails, and webhooks.
+- [x] Add or verify monitoring for API failures, auth failures, jobs, emails, and webhooks.
 - [x] Confirm production secrets and environment variables are isolated from local/dev values.
 - [x] Smoke-test the Coolify/VPS deployment flow end to end on the release candidate.
 - [x] Review rate limiting, audit logging, and redaction under production-like traffic.
-- [ ] Perform at least one release rollback simulation or equivalent recovery drill.
+- [x] Perform at least one release rollback simulation or equivalent recovery drill.
 
 ### Done Criteria
 - Recovery is proven, not just described.

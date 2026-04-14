@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
+import { PrismaService } from '../common/prisma.service';
+import { OperationalAlertsService } from '../common/operational-alerts.service';
 
 @Injectable()
 export class EmailService {
@@ -8,7 +10,11 @@ export class EmailService {
     private readonly logger = new Logger(EmailService.name);
     private readonly fromEmail: string;
 
-    constructor(private configService: ConfigService) {
+    constructor(
+        private configService: ConfigService,
+        private readonly prisma: PrismaService,
+        private readonly alerts: OperationalAlertsService,
+    ) {
         const apiKey = this.configService.get<string>('RESEND_API_KEY');
         this.fromEmail =
             this.configService.get<string>('EMAIL_FROM') ||
@@ -21,6 +27,18 @@ export class EmailService {
         } else {
             this.logger.warn('RESEND_API_KEY missing or invalid. EmailService running in DEV mode (Console Log only).');
         }
+    }
+
+    private async alertDeliveryFailure(to: string, title: string, detail: string, source: string) {
+        const recipient = await this.prisma.user.findFirst({
+            where: { email: to.toLowerCase() },
+            select: { orgId: true },
+        });
+        await this.alerts.alertOrg(recipient?.orgId, title, detail, {
+            source,
+            entityType: 'email',
+            metadata: { to },
+        });
     }
 
     private escapeHtml(value: string): string {
@@ -196,6 +214,12 @@ export class EmailService {
                 this.logger.log(`Invite email sent to ${to}`);
             } catch (error) {
                 this.logger.error(`Failed to send invite email to ${to}:`, error);
+                await this.alertDeliveryFailure(
+                    to,
+                    'Invite email delivery failed',
+                    `Invite email delivery failed for ${to}: ${error instanceof Error ? error.message : String(error)}`,
+                    'email.invite',
+                );
                 throw error; // Or swallow if we don't want to block user creation
             }
         } else {
@@ -235,6 +259,12 @@ export class EmailService {
                 this.logger.log(`Password reset email sent to ${to}`);
             } catch (error) {
                 this.logger.error(`Failed to send password reset email to ${to}:`, error);
+                await this.alertDeliveryFailure(
+                    to,
+                    'Password reset email delivery failed',
+                    `Password reset email delivery failed for ${to}: ${error instanceof Error ? error.message : String(error)}`,
+                    'email.password-reset',
+                );
                 throw error;
             }
         } else {
@@ -266,6 +296,12 @@ export class EmailService {
                 this.logger.log(`Notification email sent to ${to}`);
             } catch (error) {
                 this.logger.error(`Failed to send notification email to ${to}:`, error);
+                await this.alertDeliveryFailure(
+                    to,
+                    'Notification email delivery failed',
+                    `Notification email delivery failed for ${to}: ${error instanceof Error ? error.message : String(error)}`,
+                    'email.notification',
+                );
                 throw error;
             }
         } else {

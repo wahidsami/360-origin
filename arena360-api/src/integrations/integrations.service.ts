@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nest
 import { IntegrationType } from '@prisma/client';
 import { createHmac } from 'crypto';
 import { PrismaService } from '../common/prisma.service';
+import { OperationalAlertsService } from '../common/operational-alerts.service';
 import { UserWithRoles } from '../common/utils/scope.utils';
 import { SlackService } from './slack.service';
 import { GithubService } from './github.service';
@@ -16,6 +17,7 @@ export class IntegrationsService {
     private readonly prisma: PrismaService,
     private readonly slack: SlackService,
     private readonly github: GithubService,
+    private readonly alerts: OperationalAlertsService,
   ) {}
 
   private async ensureOrgAccess(orgId: string, user: UserWithRoles) {
@@ -167,7 +169,7 @@ export class IntegrationsService {
       return;
     }
 
-    await Promise.allSettled(webhooks.map(async (webhook) => {
+    const results = await Promise.allSettled(webhooks.map(async (webhook) => {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'X-Arena360-Event': event,
@@ -187,11 +189,27 @@ export class IntegrationsService {
         });
         if (!response?.ok) {
           this.logger.warn(`Webhook ${webhook.id} failed with status ${response?.status ?? 'unknown'}`);
+          throw new Error(`Webhook ${webhook.id} failed with status ${response?.status ?? 'unknown'}`);
         }
       } catch (error) {
         this.logger.warn(`Webhook ${webhook.id} dispatch failed`, error);
+        throw error;
       }
     }));
+
+    const failures = results.filter((result) => result.status === 'rejected').length;
+    if (failures > 0) {
+      await this.alerts.alertOrg(
+        orgId,
+        'Webhook delivery failed',
+        `${failures} webhook delivery attempt(s) failed for event ${event}.`,
+        {
+          source: 'integrations.webhooks',
+          entityType: 'webhook',
+          metadata: { event, failures, total: webhooks.length },
+        },
+      );
+    }
   }
 
   async listWebhooks(orgId: string, user: UserWithRoles) {

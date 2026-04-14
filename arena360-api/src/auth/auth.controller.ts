@@ -5,6 +5,7 @@ import * as express from 'express';
 import { AuthService } from './auth.service';
 import { SsoService, GoogleProfile } from './sso.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { OperationalAlertsService } from '../common/operational-alerts.service';
 import { LoginDto } from './dto/login.dto';
 import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { SignupOrgDto } from './dto/signup-org.dto';
@@ -21,6 +22,7 @@ export class AuthController {
         private authService: AuthService,
         private ssoService: SsoService,
         private config: ConfigService,
+        private readonly alerts: OperationalAlertsService,
     ) { }
 
     @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 attempts per minute for login
@@ -139,35 +141,57 @@ export class AuthController {
         } catch {
             return res.redirect(frontendUrl + '/#/login?error=invalid_state');
         }
-        const { config } = await this.ssoService.getGoogleConfigByOrg(orgId);
-        const baseUrl = this.config.get<string>('API_URL') || 'http://localhost:3000';
-        const redirectUri = `${baseUrl}/auth/sso/google/callback`;
-        const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                code,
-                client_id: config.clientId!,
-                client_secret: config.clientSecret!,
-                redirect_uri: redirectUri,
-                grant_type: 'authorization_code',
-            }),
-        });
-        if (!tokenRes.ok) {
-            return res.redirect(`${frontendUrl}/#/login?error=token_exchange_failed`);
+        try {
+            const { config } = await this.ssoService.getGoogleConfigByOrg(orgId);
+            const baseUrl = this.config.get<string>('API_URL') || 'http://localhost:3000';
+            const redirectUri = `${baseUrl}/auth/sso/google/callback`;
+            const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    code,
+                    client_id: config.clientId!,
+                    client_secret: config.clientSecret!,
+                    redirect_uri: redirectUri,
+                    grant_type: 'authorization_code',
+                }),
+            });
+            if (!tokenRes.ok) {
+                await this.alerts.alertOrg(
+                    orgId,
+                    'Google SSO callback failed',
+                    `Google SSO token exchange failed with status ${tokenRes.status}.`,
+                    { source: 'auth.google', entityType: 'auth' },
+                );
+                return res.redirect(`${frontendUrl}/#/login?error=token_exchange_failed`);
+            }
+            const tokens = await tokenRes.json();
+            const userInfoRes = await fetch(GOOGLE_USERINFO_URL, {
+                headers: { Authorization: `Bearer ${tokens.access_token}` },
+            });
+            if (!userInfoRes.ok) {
+                await this.alerts.alertOrg(
+                    orgId,
+                    'Google SSO callback failed',
+                    `Google SSO userinfo lookup failed with status ${userInfoRes.status}.`,
+                    { source: 'auth.google', entityType: 'auth' },
+                );
+                return res.redirect(`${frontendUrl}/#/login?error=userinfo_failed`);
+            }
+            const profile: GoogleProfile = await userInfoRes.json();
+            const user = await this.ssoService.findOrCreateUserFromGoogle(orgId, profile);
+            const loginResult = await this.authService.login(user);
+            const accessToken = 'accessToken' in loginResult ? (loginResult.accessToken as string) : '';
+            return res.redirect(`${frontendUrl}/#/auth/callback?token=${encodeURIComponent(accessToken)}`);
+        } catch (callbackError) {
+            await this.alerts.alertOrg(
+                orgId,
+                'Google SSO callback failed',
+                `Google SSO callback failed: ${callbackError instanceof Error ? callbackError.message : String(callbackError)}`,
+                { source: 'auth.google', entityType: 'auth' },
+            );
+            return res.redirect(`${frontendUrl}/#/login?error=google_sso_failed`);
         }
-        const tokens = await tokenRes.json();
-        const userInfoRes = await fetch(GOOGLE_USERINFO_URL, {
-            headers: { Authorization: `Bearer ${tokens.access_token}` },
-        });
-        if (!userInfoRes.ok) {
-            return res.redirect(`${frontendUrl}/#/login?error=userinfo_failed`);
-        }
-        const profile: GoogleProfile = await userInfoRes.json();
-        const user = await this.ssoService.findOrCreateUserFromGoogle(orgId, profile);
-        const loginResult = await this.authService.login(user);
-        const accessToken = 'accessToken' in loginResult ? (loginResult.accessToken as string) : '';
-        return res.redirect(`${frontendUrl}/#/auth/callback?token=${encodeURIComponent(accessToken)}`);
     }
 
     @Get('sso/saml/metadata/:orgIdOrSlug')
@@ -187,7 +211,13 @@ export class AuthController {
             const baseUrl = this.config.get<string>('API_URL') || 'http://localhost:3000';
             const url = await this.ssoService.getSamlAuthorizeUrl(org, baseUrl);
             return res.redirect(url);
-        } catch {
+        } catch (error) {
+            await this.alerts.alertOrg(
+                org,
+                'SAML SSO start failed',
+                `SAML SSO start failed: ${error instanceof Error ? error.message : String(error)}`,
+                { source: 'auth.saml', entityType: 'auth' },
+            );
             return res.redirect(`${frontendUrl}/#/login?error=saml_config`);
         }
     }
@@ -202,7 +232,16 @@ export class AuthController {
             const loginResult = await this.authService.login(user);
             const accessToken = 'accessToken' in loginResult ? (loginResult.accessToken as string) : '';
             return res.redirect(`${frontendUrl}/#/auth/callback?token=${encodeURIComponent(accessToken)}`);
-        } catch {
+        } catch (error) {
+            const relayState = body.RelayState || body.relayState;
+            if (relayState) {
+                await this.alerts.alertOrg(
+                    relayState,
+                    'SAML SSO callback failed',
+                    `SAML SSO callback failed: ${error instanceof Error ? error.message : String(error)}`,
+                    { source: 'auth.saml', entityType: 'auth' },
+                );
+            }
             return res.redirect(`${frontendUrl}/#/login?error=saml_login_failed`);
         }
     }
