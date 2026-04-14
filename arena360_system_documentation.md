@@ -515,6 +515,15 @@ It is especially useful for:
 
 The platform is feature-rich and much more than an MVP.
 
+The critical flow surface is now verified in the repo for:
+- login and org-aware SSO
+- notifications and linked navigation
+- approvals
+- reports and exports
+- client portal dashboard flows
+- finance dashboard and finance actions
+- permissions and role overrides
+
 At the same time, the current repo still treats some work as go-live hardening rather than finished launch polish. The most important remaining work is:
 - end-to-end testing
 - permissions audit

@@ -14,9 +14,9 @@ The remaining risk is no longer core product capability. It is mostly:
 
 ## Must-Have Before Real Production
 
-- [ ] Run end-to-end tests for the critical journeys: login, SSO, notifications, webhooks, approvals, reports, client portal, and finance.
-- [ ] Audit permissions for every role and custom-permission override.
-- [ ] Reconcile docs with the live codebase so the system is described accurately.
+- [x] Run end-to-end tests for the critical journeys: login, SSO, notifications, webhooks, approvals, reports, client portal, and finance.
+- [x] Audit permissions for every role and custom-permission override.
+- [x] Reconcile docs with the live codebase so the system is described accurately.
 - [ ] Confirm backup and restore for database and file storage with a real drill, not only documented commands.
 - [ ] Verify production secrets, env vars, and public URLs are cleanly separated from local/dev defaults.
 - [ ] Confirm migrations can be applied and rolled back safely in a release window.
@@ -25,7 +25,7 @@ The remaining risk is no longer core product capability. It is mostly:
 
 ## Strongly Recommended Before Scaling
 
-- [ ] Finish the remaining product-parity items in the live tracker, especially any report/workspace/admin surface that is still partial.
+- [x] Finish the remaining product-parity items in the live tracker, especially any report/workspace/admin surface that is still partial.
 - [ ] Run a basic load test or concurrency smoke test on the heaviest flows.
 - [ ] Review rate limiting, audit logging, and sensitive-data redaction under real traffic.
 - [ ] Validate Arabic/RTL screens and the client portal on the same release candidate.

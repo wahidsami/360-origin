@@ -68,8 +68,8 @@ Prove the system works end to end for the highest-risk journeys.
 - [x] Add E2E coverage for webhooks and delivery events.
 - [x] Add E2E coverage for approvals across reports, invoices, and contracts.
 - [x] Add E2E coverage for reports and exports.
-- [ ] Add E2E coverage for client portal flows.
-- [ ] Add E2E coverage for finance dashboard and finance actions.
+- [x] Add E2E coverage for client portal flows.
+- [x] Add E2E coverage for finance dashboard and finance actions.
 - [x] Add permission-matrix tests for every role.
 
 ### Done Criteria
@@ -103,10 +103,10 @@ Make the system safe to operate in a real environment.
 Make the docs match the shipped system exactly.
 
 ### Work
-- [ ] Update system documentation to reflect the final release scope.
-- [ ] Update the report and implementation notes so they no longer conflict.
-- [ ] Remove stale “missing” or “partial” statements that no longer apply.
-- [ ] Keep the production checklist aligned with the final implementation.
+- [x] Update system documentation to reflect the final release scope.
+- [x] Update the report and implementation notes so they no longer conflict.
+- [x] Remove stale “missing” or “partial” statements that no longer apply.
+- [x] Keep the production checklist aligned with the final implementation.
 
 ### Done Criteria
 - Documentation no longer overstates or understates the product.

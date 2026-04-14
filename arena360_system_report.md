@@ -3,6 +3,8 @@
 > **Date:** March 6, 2026  
 > **Version:** 1.0  
 > **Purpose:** End-to-end system documentation, feature inventory, operational flow analysis, enterprise gap assessment, and competitive positioning.
+>
+> **Status:** Historical baseline report. The current product state is described in `arena360_system_report_post_implementation.md` and `arena360_system_documentation.md`.
 
 ---
 

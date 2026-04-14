@@ -7,7 +7,7 @@ For the step-by-step completion path, see [arena360_100_percent_completion_plan.
 ## Current Status
 
 - Missing: none identified in the latest cleanup pass.
-- Partially implemented: the remaining parity and hardening work, especially workspace/analytics alignment, docs sync, and the remaining release verification coverage.
+- Partially implemented: the remaining hardening work, especially production verification, deployment safety, and post-release docs freeze.
 
 ## Phase 0 - User-Facing Gaps
 
@@ -35,7 +35,7 @@ For the step-by-step completion path, see [arena360_100_percent_completion_plan.
 ## Phase 3 - Product Parity
 
 - [x] Restore generic report generation and a full non-accessibility template workflow if that remains in scope.
-- [ ] Finish the remaining finance surfaces that are still hidden or partial.
+- [x] Finish the remaining finance surfaces that are still hidden or partial.
 - [x] Align workspace visibility and tab behavior with the documented role model.
 - [x] Tighten analytics and admin screens to match documented capabilities.
 
@@ -48,5 +48,5 @@ For the step-by-step completion path, see [arena360_100_percent_completion_plan.
 - [x] Add end-to-end tests for approvals across reports, invoices, and contracts.
 - [x] Add end-to-end tests for reports and exports.
 - [x] Audit permissions so each role sees exactly what it should.
-- [ ] Update the documentation after each phase so the docs stay aligned with reality.
+- [x] Update the documentation after each phase so the docs stay aligned with reality.
 - [ ] Rebuild and redeploy after each phase to catch regressions early.
