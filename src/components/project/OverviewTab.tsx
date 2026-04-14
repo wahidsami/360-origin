@@ -306,14 +306,14 @@ export const OverviewTab: React.FC<OverviewTabProps & { onRefresh?: () => void }
     };
 
     const taskPreviews = (tasks || [])
-        .filter(t => t.status?.toLowerCase() !== 'done')
-        .map(t => {
+        .filter((task) => task.status?.toLowerCase() !== 'done')
+        .map((task) => {
             let isOverdue = false;
             let daysRef = Infinity;
             let dueText = t('no_due_date');
 
-            if (t.dueDate) {
-                const due = new Date(t.dueDate);
+            if (task.dueDate) {
+                const due = new Date(task.dueDate);
                 due.setHours(23, 59, 59, 999);
                 const now = new Date();
 
@@ -324,11 +324,11 @@ export const OverviewTab: React.FC<OverviewTabProps & { onRefresh?: () => void }
                     const daysLate = Math.ceil(Math.abs(daysRef));
                     dueText = t('days_late', { count: daysLate });
                 } else {
-                    dueText = t('due_prefix', { date: formatRelativeDate(t.dueDate) });
+                    dueText = t('due_prefix', { date: formatRelativeDate(task.dueDate) });
                 }
             }
 
-            return { ...t, isOverdue, daysRef, dueText };
+            return { ...task, isOverdue, daysRef, dueText };
         })
         .sort((a, b) => {
             if (a.isOverdue && !b.isOverdue) return -1;
