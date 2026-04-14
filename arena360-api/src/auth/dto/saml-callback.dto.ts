@@ -8,4 +8,8 @@ export class SamlCallbackDto {
   @IsOptional()
   @IsString()
   RelayState?: string;
+
+  @IsOptional()
+  @IsString()
+  relayState?: string;
 }

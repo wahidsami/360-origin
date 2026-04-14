@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { NotificationType } from '@prisma/client';
+import { NotificationType, Prisma } from '@prisma/client';
 import { PrismaService } from './prisma.service';
 
 type OperationalAlertOptions = {
@@ -70,7 +70,7 @@ export class OperationalAlertsService {
           metadata: options.metadata || {},
           recipientCount: recipients.length,
           deliveredCount,
-        },
+        } as Prisma.InputJsonValue,
       },
     }).catch((error) => {
       this.logger.warn(`Failed to persist operational alert audit log: ${error?.message || error}`);

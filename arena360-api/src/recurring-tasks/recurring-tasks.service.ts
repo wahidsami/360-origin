@@ -102,7 +102,7 @@ export class RecurringTasksService {
   }
 
   async update(projectId: string, templateId: string, user: UserWithRoles, dto: UpdateRecurringTaskDto) {
-    await this.ensureProjectAccess(projectId, user);
+    const project = await this.ensureProjectAccess(projectId, user);
     const template = await this.prisma.recurringTaskTemplate.findFirst({
       where: { id: templateId, projectId },
     });
@@ -150,11 +150,9 @@ export class RecurringTasksService {
     });
     for (const t of due) {
       try {
-        let createdTask: { id: string; title: string; status: string; priority: string; assigneeId?: string | null } | null = null;
-        let nextRun: Date | null = null;
-        await this.prisma.$transaction(async (tx) => {
+        const { createdTask, nextRun } = await this.prisma.$transaction(async (tx) => {
           const runAt = t.nextRunAt;
-          createdTask = await tx.task.create({
+          const task = await tx.task.create({
             data: {
               projectId: t.projectId,
               title: t.title,
@@ -164,13 +162,22 @@ export class RecurringTasksService {
               sourceRecurringId: t.id,
             },
           });
-          nextRun = this.computeNextRun(runAt, t.recurrenceRule as { frequency: string; interval?: number; weekday?: number });
+          const computedNextRun = this.computeNextRun(runAt, t.recurrenceRule as { frequency: string; interval?: number; weekday?: number });
           await tx.recurringTaskTemplate.update({
             where: { id: t.id },
-            data: { lastRunAt: runAt, nextRunAt: nextRun },
+            data: { lastRunAt: runAt, nextRunAt: computedNextRun },
           });
+          return {
+            createdTask: {
+              id: task.id,
+              title: task.title,
+              status: task.status,
+              priority: task.priority,
+              assigneeId: task.assigneeId,
+            },
+            nextRun: computedNextRun,
+          };
         });
-        if (!createdTask || !nextRun) continue;
 
         const projectLink = `/app/projects/${t.projectId}?tab=recurring`;
         await this.logActivity(
