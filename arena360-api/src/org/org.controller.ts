@@ -21,71 +21,82 @@ export class OrgController {
 
   @Get()
   @UseGuards(JwtAuthGuard)
-  getOrg(@Request() req: { user: { orgId: string } }) {
-    return this.orgService.getOrg(req.user.orgId);
+  async getOrg(@Request() req: { user: { orgId?: string; id?: string; sub?: string } }) {
+    const orgId = await this.orgService.resolveOrgId(req.user);
+    return this.orgService.getOrg(orgId);
   }
 
   @Patch()
   @UseGuards(JwtAuthGuard)
-  updateOrg(@Request() req: { user: { orgId: string } }, @Body() body: any) {
-    return this.orgService.updateOrg(req.user.orgId, body);
+  async updateOrg(@Request() req: { user: { orgId?: string; id?: string; sub?: string } }, @Body() body: any) {
+    const orgId = await this.orgService.resolveOrgId(req.user);
+    return this.orgService.updateOrg(orgId, body);
   }
 
   @Get('usage')
   @UseGuards(JwtAuthGuard)
-  getUsage(@Request() req: { user: { orgId: string } }) {
-    return this.orgService.getUsage(req.user.orgId);
+  async getUsage(@Request() req: { user: { orgId?: string; id?: string; sub?: string } }) {
+    const orgId = await this.orgService.resolveOrgId(req.user);
+    return this.orgService.getUsage(orgId);
   }
 
   @Get('role-permissions')
   @UseGuards(JwtAuthGuard)
-  getRolePermissions(@Request() req: { user: { orgId: string } }) {
-    return this.orgService.getRolePermissions(req.user.orgId);
+  async getRolePermissions(@Request() req: { user: { orgId?: string; id?: string; sub?: string } }) {
+    const orgId = await this.orgService.resolveOrgId(req.user);
+    return this.orgService.getRolePermissions(orgId);
   }
 
   @Patch('role-permissions')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(GlobalRole.SUPER_ADMIN)
-  updateRolePermissions(@Request() req: { user: { orgId: string } }, @Body() body: { rolePermissions: Record<string, unknown> }) {
-    return this.orgService.updateRolePermissions(req.user.orgId, body.rolePermissions);
+  async updateRolePermissions(@Request() req: { user: { orgId?: string; id?: string; sub?: string } }, @Body() body: { rolePermissions: Record<string, unknown> }) {
+    const orgId = await this.orgService.resolveOrgId(req.user);
+    return this.orgService.updateRolePermissions(orgId, body.rolePermissions);
   }
 
   @Get('onboarding-status')
   @UseGuards(JwtAuthGuard)
-  getOnboardingStatus(@Request() req: { user: { orgId: string } }) {
-    return this.orgService.getOnboardingStatus(req.user.orgId);
+  async getOnboardingStatus(@Request() req: { user: { orgId?: string; id?: string; sub?: string } }) {
+    const orgId = await this.orgService.resolveOrgId(req.user);
+    return this.orgService.getOnboardingStatus(orgId);
   }
 
   @Patch('onboarding-dismiss')
   @UseGuards(JwtAuthGuard)
-  dismissOnboarding(@Request() req: { user: { orgId: string } }) {
-    return this.orgService.dismissOnboarding(req.user.orgId);
+  async dismissOnboarding(@Request() req: { user: { orgId?: string; id?: string; sub?: string } }) {
+    const orgId = await this.orgService.resolveOrgId(req.user);
+    return this.orgService.dismissOnboarding(orgId);
   }
 
   @Get('sso-config')
   @UseGuards(JwtAuthGuard)
-  getSsoConfigs(@Request() req: { user: { orgId: string } }) {
-    return this.orgService.getSsoConfigs(req.user.orgId);
+  async getSsoConfigs(@Request() req: { user: { orgId?: string; id?: string; sub?: string } }) {
+    const orgId = await this.orgService.resolveOrgId(req.user);
+    return this.orgService.getSsoConfigs(orgId);
   }
 
   @Post('sso-config')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(GlobalRole.SUPER_ADMIN)
-  createSsoConfig(@Request() req: { user: { orgId: string } }, @Body() body: any) {
-    return this.orgService.createSsoConfig(req.user.orgId, body);
+  async createSsoConfig(@Request() req: { user: { orgId?: string; id?: string; sub?: string } }, @Body() body: any) {
+    const orgId = await this.orgService.resolveOrgId(req.user);
+    return this.orgService.createSsoConfig(orgId, body);
   }
 
   @Patch('sso-config/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(GlobalRole.SUPER_ADMIN)
-  updateSsoConfig(@Request() req: { user: { orgId: string } }, @Param('id') id: string, @Body() body: any) {
-    return this.orgService.updateSsoConfig(req.user.orgId, id, body);
+  async updateSsoConfig(@Request() req: { user: { orgId?: string; id?: string; sub?: string } }, @Param('id') id: string, @Body() body: any) {
+    const orgId = await this.orgService.resolveOrgId(req.user);
+    return this.orgService.updateSsoConfig(orgId, id, body);
   }
 
   @Delete('sso-config/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(GlobalRole.SUPER_ADMIN)
-  deleteSsoConfig(@Request() req: { user: { orgId: string } }, @Param('id') id: string) {
-    return this.orgService.deleteSsoConfig(req.user.orgId, id);
+  async deleteSsoConfig(@Request() req: { user: { orgId?: string; id?: string; sub?: string } }, @Param('id') id: string) {
+    const orgId = await this.orgService.resolveOrgId(req.user);
+    return this.orgService.deleteSsoConfig(orgId, id);
   }
 }

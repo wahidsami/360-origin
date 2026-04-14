@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, UnauthorizedException } from '@nestjs/common';
 import { GlobalRole, SSOProvider } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service';
 
@@ -48,6 +48,27 @@ const normalizeRolePermissions = (input: unknown): Record<GlobalRole, string[]> 
 @Injectable()
 export class OrgService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async resolveOrgId(user: { orgId?: string | null; id?: string; sub?: string } | null | undefined): Promise<string> {
+    if (user?.orgId) {
+      return user.orgId;
+    }
+
+    const userId = user?.id ?? user?.sub;
+    if (!userId) {
+      throw new UnauthorizedException('Organization context missing');
+    }
+
+    const resolved = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { orgId: true },
+    });
+    if (!resolved?.orgId) {
+      throw new UnauthorizedException('Organization context missing');
+    }
+
+    return resolved.orgId;
+  }
 
   async createOrg(dto: CreateOrgDto) {
     const slug = dto.slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'org';

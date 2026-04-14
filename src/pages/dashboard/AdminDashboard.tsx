@@ -93,7 +93,7 @@ const MiniSparkline: React.FC<{ values: number[]; stroke: string; fill: string }
 
   return (
     <div className="h-14 w-24">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <AreaChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
           <Area type="monotone" dataKey="value" stroke={stroke} strokeWidth={2.5} fill={fill} fillOpacity={0.25} />
         </AreaChart>
@@ -552,7 +552,7 @@ export const AdminDashboard: React.FC<{ role: Role }> = ({ role }) => {
                   ) : (
                     <div className="max-h-[560px] overflow-y-auto pr-2">
                       <div dir="ltr" className="w-full min-h-[220px]" style={{ height: complianceChartHeight }}>
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                           <BarChart
                             data={complianceSeries}
                             layout="vertical"
@@ -667,7 +667,7 @@ export const AdminDashboard: React.FC<{ role: Role }> = ({ role }) => {
           <GlassCard className="overflow-hidden cursor-pointer" title={t('audit_coverage')} onClick={() => navigate('/app/clients')}>
             <div className="grid gap-5 md:grid-cols-[112px,1fr] md:items-center">
               <div className="relative h-28 w-28 mx-auto">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <RadialBarChart
                     innerRadius="72%"
                     outerRadius="100%"
@@ -706,7 +706,7 @@ export const AdminDashboard: React.FC<{ role: Role }> = ({ role }) => {
             {findingsSeverityData.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-[132px,1fr] md:items-center">
                 <div className="h-32">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                     <PieChart>
                       <Pie data={findingsSeverityData} dataKey="count" nameKey="name" innerRadius={34} outerRadius={56} stroke="none" paddingAngle={3}>
                         {findingsSeverityData.map((entry) => (
@@ -740,7 +740,7 @@ export const AdminDashboard: React.FC<{ role: Role }> = ({ role }) => {
           {findingsStatusData.length > 0 ? (
             showFindingsStatusChart ? (
               <div className="h-[220px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <BarChart data={findingsStatusData} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} vertical={false} opacity={0.2} />
                     <XAxis dataKey="name" stroke={chartAxisColor} tick={{ fill: chartAxisColor }} fontSize={11} tickLine={false} axisLine={false} />
@@ -781,7 +781,7 @@ export const AdminDashboard: React.FC<{ role: Role }> = ({ role }) => {
           {portfolioHealthData.length > 0 ? (
             showPortfolioHealthChart ? (
               <div dir="ltr" className="h-[220px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <BarChart data={portfolioHealthData} layout="vertical" margin={{ top: 8, right: isRtl ? 132 : 16, left: isRtl ? 12 : 12, bottom: 8 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} horizontal={false} opacity={0.2} />
                     <XAxis type="number" reversed={isRtl} stroke={chartAxisColor} tick={{ fill: chartAxisColor }} fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />

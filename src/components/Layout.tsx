@@ -87,7 +87,7 @@ export const Layout: React.FC = () => {
   const [orgBranding, setOrgBranding] = useState<{ logo?: string | null; primaryColor?: string | null; accentColor?: string | null } | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.orgId) return;
 
     // QA Default Redirection
     if (user.role === Role.QA && window.location.pathname === '/app/dashboard') {
@@ -103,7 +103,7 @@ export const Layout: React.FC = () => {
       }
       if (o.accentColor) root.setProperty('--brand-accent', o.accentColor);
     }).catch(() => { });
-  }, [user]);
+  }, [user?.orgId, user?.role]);
 
   const loadNotificationCount = async () => {
     try {

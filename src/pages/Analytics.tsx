@@ -86,7 +86,7 @@ const Analytics: React.FC = () => {
         <div className="flex-1 grid md:grid-cols-2 gap-6">
           <div className="min-h-[200px]">
             <h3 className="text-slate-300 text-sm font-medium mb-2">{t('projects_by_health')}</h3>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={0}>
               <BarChart data={data.portfolio.byHealth}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                 <XAxis dataKey="health" stroke="#64748b" fontSize={12} />
@@ -98,7 +98,7 @@ const Analytics: React.FC = () => {
           </div>
           <div className="min-h-[200px]">
             <h3 className="text-slate-300 text-sm font-medium mb-2">{t('projects_by_status')}</h3>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={0}>
               <BarChart data={data.portfolio.byStatus}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                 <XAxis dataKey="status" stroke="#64748b" fontSize={11} />
@@ -132,7 +132,7 @@ const Analytics: React.FC = () => {
           {data.team.velocityByWeek && data.team.velocityByWeek.length > 0 && (
             <div className="min-h-[200px]">
               <h3 className="text-slate-300 text-sm font-medium mb-2">{t('velocity_tasks_per_week')}</h3>
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={0}>
                 <BarChart data={data.team.velocityByWeek}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                   <XAxis dataKey="weekLabel" stroke="#64748b" fontSize={10} />
@@ -145,7 +145,7 @@ const Analytics: React.FC = () => {
           )}
           <h3 className="text-slate-300 text-sm font-medium mb-2">{t('open_tasks_by_assignee')}</h3>
           <div className="min-h-[240px]">
-          <ResponsiveContainer width="100%" height={240}>
+          <ResponsiveContainer width="100%" height={240} minWidth={0} minHeight={0}>
             <BarChart data={data.team.byAssignee} layout="vertical" margin={{ left: 80 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
               <XAxis type="number" stroke="#64748b" fontSize={12} />
@@ -164,7 +164,7 @@ const Analytics: React.FC = () => {
         <div className="flex-1 grid md:grid-cols-2 gap-6">
           <div className="min-h-[200px]">
             <h3 className="text-slate-300 text-sm font-medium mb-2">{t('by_severity')}</h3>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={0}>
               <BarChart data={data.findings.bySeverity}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                 <XAxis dataKey="severity" stroke="#64748b" fontSize={12} />
@@ -176,7 +176,7 @@ const Analytics: React.FC = () => {
           </div>
           <div className="min-h-[200px]">
             <h3 className="text-slate-300 text-sm font-medium mb-2">{t('by_status')}</h3>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={0}>
               <BarChart data={data.findings.byStatus}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                 <XAxis dataKey="status" stroke="#64748b" fontSize={11} />
