@@ -50,6 +50,9 @@
   --slate-950: #020617;
 
   --brand-accent: hsl(var(--brand-secondary-blue));
+  --scrollbar-track: 240 10% 92%;
+  --scrollbar-thumb: 190 80% 48%;
+  --scrollbar-thumb-hover: 190 80% 40%;
 }
 
 .dark {
@@ -73,6 +76,9 @@
   --app-text-base: hsl(var(--foreground));
   --app-text-muted: hsl(var(--muted-foreground));
   --app-border: hsl(var(--border));
+  --scrollbar-track: 240 25% 16%;
+  --scrollbar-thumb: 190 80% 42%;
+  --scrollbar-thumb-hover: 190 80% 50%;
 }
 
 /* --- Light Theme Overrides (.theme-light) --- */
@@ -98,6 +104,9 @@
   --active-text: hsl(var(--brand-secondary-blue));
   --brand-primary: 255 45% 35%;
   --brand-accent: hsl(var(--brand-secondary-blue));
+  --scrollbar-track: #e2e8f0;
+  --scrollbar-thumb: #0ea5c6;
+  --scrollbar-thumb-hover: #0284c7;
 
   /* Explicit Shadows for Light Surfaces */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -400,6 +409,36 @@
   html[dir="rtl"] .font-display,
   html[lang="ar"] .font-display {
     font-family: "Cairo", "Bahij Janna", sans-serif;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--scrollbar-thumb)) hsl(var(--scrollbar-track));
+  }
+
+  *::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: hsl(var(--scrollbar-track));
+    border-radius: 9999px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, hsl(var(--scrollbar-thumb)) 0%, hsl(var(--brand-primary)) 100%);
+    border: 3px solid hsl(var(--scrollbar-track));
+    border-radius: 9999px;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.05);
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, hsl(var(--scrollbar-thumb-hover)) 0%, hsl(var(--brand-secondary-blue)) 100%);
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
   }
 }
 
