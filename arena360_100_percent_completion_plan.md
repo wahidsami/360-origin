@@ -62,15 +62,15 @@ Remove the remaining feature mismatches between the docs, UI, and backend.
 Prove the system works end to end for the highest-risk journeys.
 
 ### Work
-- [ ] Add E2E coverage for login.
-- [ ] Add E2E coverage for SSO login and org-aware routing.
+- [x] Add E2E coverage for login.
+- [x] Add E2E coverage for SSO login and org-aware routing.
 - [ ] Add E2E coverage for notifications and linked navigation.
 - [ ] Add E2E coverage for webhooks and delivery events.
 - [ ] Add E2E coverage for approvals across reports, invoices, and contracts.
 - [ ] Add E2E coverage for reports and exports.
 - [ ] Add E2E coverage for client portal flows.
 - [ ] Add E2E coverage for finance dashboard and finance actions.
-- [ ] Add permission-matrix tests for every role.
+- [x] Add permission-matrix tests for every role.
 
 ### Done Criteria
 - Each critical flow has at least one happy-path test and one failure-path test.

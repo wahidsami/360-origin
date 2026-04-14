@@ -7,7 +7,7 @@ For the step-by-step completion path, see [arena360_100_percent_completion_plan.
 ## Current Status
 
 - Missing: none identified in the latest cleanup pass.
-- Partially implemented: the remaining parity and hardening work, especially workspace/analytics alignment and verification coverage.
+- Partially implemented: the remaining parity and hardening work, especially workspace/analytics alignment, docs sync, and the remaining release verification coverage.
 
 ## Phase 0 - User-Facing Gaps
 
@@ -41,7 +41,12 @@ For the step-by-step completion path, see [arena360_100_percent_completion_plan.
 
 ## Phase 4 - Verification
 
-- [ ] Add end-to-end tests for login, SSO, notifications, webhooks, approvals, and reports.
-- [ ] Audit permissions so each role sees exactly what it should.
+- [x] Add end-to-end tests for login.
+- [x] Add end-to-end tests for SSO login and org-aware routing.
+- [ ] Add end-to-end tests for notifications and linked navigation.
+- [ ] Add end-to-end tests for webhooks and delivery events.
+- [ ] Add end-to-end tests for approvals across reports, invoices, and contracts.
+- [ ] Add end-to-end tests for reports and exports.
+- [x] Audit permissions so each role sees exactly what it should.
 - [ ] Update the documentation after each phase so the docs stay aligned with reality.
 - [ ] Rebuild and redeploy after each phase to catch regressions early.
