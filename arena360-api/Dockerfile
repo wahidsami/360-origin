@@ -50,7 +50,7 @@ COPY --from=builder /app/scripts ./scripts
 
 EXPOSE 3000
 
-# Coolify / Traefik: only route traffic when app responds on /health
+# Coolify / Traefik: only route traffic when app responds on /api/health
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD curl -f http://127.0.0.1:3000/api/health || exit 1
 

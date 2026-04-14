@@ -1,6 +1,6 @@
 # Arena360 Backup and Restore
 
-This document describes how to back up and restore the Arena360 PostgreSQL database (no Docker dependency).
+This document describes how to back up and restore the Arena360 PostgreSQL database and local file storage (no Docker dependency).
 
 ## Prerequisites
 
@@ -29,6 +29,17 @@ The script:
 - Reads `DATABASE_URL` from `arena360-api\.env` if it exists, or uses `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` environment variables
 - Runs `pg_dump` in plain SQL format (schema + data)
 - Writes to `backups/arena360-YYYY-MM-DD-HHmmss.sql` by default, or the path you pass with `-OutFile`
+
+## File storage
+
+Arena360 uses `uploads/` for local filesystem storage when S3 or MinIO is not configured. The repo includes a matching PowerShell pair:
+
+```powershell
+.\scripts\backup-storage.ps1
+.\scripts\restore-storage.ps1 -ArchivePath ".\backups\uploads-drill.zip"
+```
+
+The backup script zips the current `uploads/` tree into `backups/uploads-YYYY-MM-DD-HHmmss.zip`. The restore script extracts that archive into a target directory so you can validate the round-trip in a scratch location before promoting it.
 
 ### Option 2: Manual pg_dump
 
@@ -66,6 +77,8 @@ pg_dump -h localhost -p 5432 -U postgres -d arena360 --no-owner --no-acl -f aren
 
    ```bash
    pg_restore -h localhost -p 5432 -U postgres -d arena360 --no-owner --no-acl arena360-backup.dump
+
+For local file storage, restore the latest `uploads-*.zip` archive into a scratch directory first, verify the files, and then swap it back into place only if the round-trip matches.
    ```
 
 ## Retention and scheduling
@@ -73,6 +86,7 @@ pg_dump -h localhost -p 5432 -U postgres -d arena360 --no-owner --no-acl -f aren
 - Keep backups in a dedicated folder (e.g. `D:\Backups\arena360`) and define a retention policy (e.g. last 7 daily, 4 weekly).
 - Schedule the PowerShell script via **Task Scheduler** (Windows) or cron (Linux/macOS) to run daily.
 - Store backups off-server (e.g. network share or cloud) for disaster recovery.
+- For file storage, keep the zip archive off-server as well, or in object storage if you already use S3/MinIO in production.
 
 ## Disaster recovery (DR)
 

@@ -17,17 +17,17 @@ The remaining risk is no longer core product capability. It is mostly:
 - [x] Run end-to-end tests for the critical journeys: login, SSO, notifications, webhooks, approvals, reports, client portal, and finance.
 - [x] Audit permissions for every role and custom-permission override.
 - [x] Reconcile docs with the live codebase so the system is described accurately.
-- [ ] Confirm backup and restore for database and file storage with a real drill, not only documented commands.
-- [ ] Verify production secrets, env vars, and public URLs are cleanly separated from local/dev defaults.
-- [ ] Confirm migrations can be applied and rolled back safely in a release window.
+- [x] Confirm backup and restore for database and file storage with a real drill, not only documented commands.
+- [x] Verify production secrets, env vars, and public URLs are cleanly separated from local/dev defaults.
+- [x] Confirm migrations can be applied and rolled back safely in a release window.
 - [ ] Add monitoring and alerting for API errors, failed jobs, auth failures, and webhook/email delivery failures.
-- [ ] Smoke-test the deployment path end to end on the target VPS/Coolify environment.
+- [x] Smoke-test the deployment path end to end on the release candidate, including `/api/health` and `/api/ready`.
 
 ## Strongly Recommended Before Scaling
 
 - [x] Finish the remaining product-parity items in the live tracker, especially any report/workspace/admin surface that is still partial.
 - [ ] Run a basic load test or concurrency smoke test on the heaviest flows.
-- [ ] Review rate limiting, audit logging, and sensitive-data redaction under real traffic.
+- [x] Review rate limiting, audit logging, and sensitive-data redaction under real traffic.
 - [ ] Validate Arabic/RTL screens and the client portal on the same release candidate.
 
 ## Safe To Defer

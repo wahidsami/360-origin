@@ -83,13 +83,13 @@ Prove the system works end to end for the highest-risk journeys.
 Make the system safe to operate in a real environment.
 
 ### Work
-- [ ] Run a real database backup and restore drill.
-- [ ] Run a real file-storage backup and restore drill.
-- [ ] Verify migrations can be applied safely on the target deployment.
+- [x] Run a real database backup and restore drill.
+- [x] Run a real file-storage backup and restore drill.
+- [x] Verify migrations can be applied safely on the target deployment.
 - [ ] Add or verify monitoring for API failures, auth failures, jobs, emails, and webhooks.
-- [ ] Confirm production secrets and environment variables are isolated from local/dev values.
-- [ ] Smoke-test the Coolify/VPS deployment flow end to end.
-- [ ] Review rate limiting, audit logging, and redaction under production-like traffic.
+- [x] Confirm production secrets and environment variables are isolated from local/dev values.
+- [x] Smoke-test the Coolify/VPS deployment flow end to end on the release candidate.
+- [x] Review rate limiting, audit logging, and redaction under production-like traffic.
 - [ ] Perform at least one release rollback simulation or equivalent recovery drill.
 
 ### Done Criteria

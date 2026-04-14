@@ -63,9 +63,9 @@ Use a personal access token or SSH if prompted for auth.
 
 ### Backend (NestJS API)
 
-This project is Coolify-ready: root **Dockerfile**, **HEALTHCHECK** on `/health`, and **curl** in the image.
+This project is Coolify-ready: root **Dockerfile**, **HEALTHCHECK** on `/api/health`, and **curl** in the image.
 
-**Coolify UI – API (recommended):** Source = GitHub `wahidsami/360` (branch `main`). Build Pack = **Dockerfile**. **Base Directory** = `/`. **Dockerfile path** = `Dockerfile`. **Port** = `3000`. Health check is in the Dockerfile (`/health`). Add env vars from `arena360-api/.env.example` (§2); required: `DATABASE_URL`, `JWT_SECRET`, `ALLOWED_ORIGINS`.
+**Coolify UI – API (recommended):** Source = GitHub `wahidsami/360` (branch `main`). Build Pack = **Dockerfile**. **Base Directory** = `/`. **Dockerfile path** = `Dockerfile`. **Port** = `3000`. Health check is in the Dockerfile (`/api/health`). Add env vars from `arena360-api/.env.example` (§2); required: `DATABASE_URL`, `JWT_SECRET`, `ALLOWED_ORIGINS`.
 
 **Alternative (build from subfolder):** Base Directory = `arena360-api`, Dockerfile path = `Dockerfile`, Port = `3000`.
 
@@ -75,6 +75,7 @@ This project is Coolify-ready: root **Dockerfile**, **HEALTHCHECK** on `/health`
    - Coolify may need the **root** of the build context to be the repo root; then the Dockerfile path is `arena360-api/Dockerfile`. If Coolify supports a “context” path, set context to repo root.
 4. Add **Environment variables** from `arena360-api/.env.example` (and your real values), especially `DATABASE_URL`, `JWT_SECRET`, `ALLOWED_ORIGINS`.
 5. Expose port **3000** and point your domain (e.g. `api.your-domain.com`) to this service.
+6. After deploy, smoke-test the API with `.\scripts\smoke-api.ps1 -BaseUrl "http://localhost:3000"` or your live API URL and confirm `/api/health` and `/api/ready` both respond successfully.
 
 ### Frontend (static)
 
@@ -99,7 +100,7 @@ The repo includes a **root `Dockerfile`** that builds and runs `arena360-api` wi
 
 - Multi-stage build (builder + production image)
 - `curl` for health checks
-- **HEALTHCHECK** on `GET /health` so Coolify/Traefik only route when the app is up
+- **HEALTHCHECK** on `GET /api/health` so Coolify/Traefik only route when the app is up
 
 Use it in Coolify with **Base Directory** `/` and **Dockerfile path** `Dockerfile`.
 
@@ -113,3 +114,4 @@ Use it in Coolify with **Base Directory** `/` and **Dockerfile path** `Dockerfil
 - [ ] Set `ALLOWED_ORIGINS` to your frontend URL and `DATABASE_URL` to VPS PostgreSQL.
 - [ ] Build frontend with `VITE_API_URL` set to your API URL; deploy as static site or nginx container.
 - [ ] Run migrations once: `npx prisma migrate deploy` in `arena360-api` (with production `DATABASE_URL`).
+- [ ] Smoke-test the live API with `scripts/smoke-api.ps1` against `/api/health` and `/api/ready`.
