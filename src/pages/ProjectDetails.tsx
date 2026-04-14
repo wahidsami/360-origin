@@ -68,7 +68,11 @@ export const ProjectDetails: React.FC = () => {
       : [];
 
     const normalizedWorkspaceTabs = (() => {
-      const restoredClientTabs = new Set<ProjectTabId>(['discussions', 'updates', 'findings', 'team', 'financials', 'testing', 'activity']);
+      const defaultClientTabIds = new Set<ProjectTabId>(
+        buildDefaultProjectWorkspaceConfigDraft(project?.clientId).tabs
+          .filter((tab) => tab.state !== 'hidden')
+          .map((tab) => tab.tabId as ProjectTabId),
+      );
       const nextTabs = [...workspaceTabs];
 
       const ensureTabState = (tabId: ProjectTabId, state: 'visible_read_only' | 'visible_interactive') => {
@@ -95,7 +99,7 @@ export const ProjectDetails: React.FC = () => {
       }
 
       if (!isInternalUser) {
-        restoredClientTabs.forEach((tabId) => {
+        defaultClientTabIds.forEach((tabId) => {
           if (tabId === 'discussions') {
             ensureTabState(tabId, 'visible_interactive');
           } else {
