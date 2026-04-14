@@ -32,11 +32,27 @@ const permissionLabel = (permission: string) =>
     .toLowerCase()
     .replace(/\b\w/g, (char) => char.toUpperCase());
 
-const roleDescription = (role: Role) => {
-  if (role === Role.SUPER_ADMIN) return 'Full system access and configuration.';
-  if (role === Role.CLIENT_OWNER) return 'Restricted external access to owned entities.';
-  if (role === Role.CLIENT_MANAGER || role === Role.CLIENT_MEMBER) return 'External client access.';
-  return 'Internal operational role.';
+const roleDescriptionKey = (role: Role) => {
+  if (role === Role.SUPER_ADMIN) return 'role_description_super_admin';
+  if (role === Role.CLIENT_OWNER) return 'role_description_client_owner';
+  if (role === Role.CLIENT_MANAGER || role === Role.CLIENT_MEMBER) return 'role_description_client_access';
+  return 'role_description_internal';
+};
+
+const roleLabelKey = (role: Role) => {
+  switch (role) {
+    case Role.SUPER_ADMIN: return 'role_super_admin';
+    case Role.OPS: return 'role_ops';
+    case Role.PM: return 'role_pm';
+    case Role.DEV: return 'role_dev';
+    case Role.QA: return 'role_qa';
+    case Role.FINANCE: return 'role_finance';
+    case Role.CLIENT_OWNER: return 'role_client_owner';
+    case Role.CLIENT_MANAGER: return 'role_client_manager';
+    case Role.CLIENT_MEMBER: return 'role_client_member';
+    case Role.VIEWER: return 'role_viewer';
+    default: return role;
+  }
 };
 
 export const RolesAdmin: React.FC = () => {
@@ -48,6 +64,7 @@ export const RolesAdmin: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [saveMessage, setSaveMessage] = React.useState<string | null>(null);
+  const [saveMessageKind, setSaveMessageKind] = React.useState<'success' | 'error' | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -98,25 +115,30 @@ export const RolesAdmin: React.FC = () => {
       return { ...current, [selectedRole]: Array.from(next) };
     });
     setSaveMessage(null);
+    setSaveMessageKind(null);
   };
 
   const resetSelectedRole = () => {
     setDraftPermissions((current) => ({ ...current, [selectedRole]: [...(ROLE_PERMISSIONS[selectedRole] || [])] }));
     setSaveMessage(null);
+    setSaveMessageKind(null);
   };
 
   const handleSave = async () => {
     setSaving(true);
     setSaveMessage(null);
+    setSaveMessageKind(null);
     try {
       const updated = await api.org.updateRolePermissions(draftPermissions);
       const normalized = normalizeRolePermissions(updated);
       setRolePermissions(normalized);
       setDraftPermissions(normalized);
-      setSaveMessage('Role permissions saved successfully.');
+      setSaveMessage(t('role_permissions_saved_successfully'));
+      setSaveMessageKind('success');
     } catch (error) {
       console.error('Failed to save role permissions', error);
-      setSaveMessage('Failed to save role permissions.');
+      setSaveMessage(t('failed_to_save_role_permissions'));
+      setSaveMessageKind('error');
     } finally {
       setSaving(false);
     }
@@ -129,19 +151,19 @@ export const RolesAdmin: React.FC = () => {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start gap-4">
         <div>
-          <h1 className="text-3xl font-bold font-display text-white">{t('admin')} / Roles</h1>
-          <p className="text-slate-400">Edit role defaults for the current organization.</p>
+          <h1 className="text-3xl font-bold font-display text-white">{t('admin')} / {t('roles_admin')}</h1>
+          <p className="text-slate-400">{t('roles_admin_subtitle')}</p>
         </div>
         <div className="bg-[hsl(var(--brand-info)/0.1)] border border-[hsl(var(--brand-info)/0.2)] px-4 py-2 rounded-lg flex items-center gap-2 text-[hsl(var(--brand-info))] text-sm">
           <Shield className="w-4 h-4" />
-          <span>Changes apply immediately after saving.</span>
+          <span>{t('changes_apply_immediately')}</span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <GlassCard className="h-fit">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <Shield className="w-5 h-5 text-cyan-500" /> Defined Roles
+            <Shield className="w-5 h-5 text-cyan-500" /> {t('defined_roles')}
           </h3>
           <div className="space-y-3">
             {roles.map((role) => {
@@ -156,10 +178,10 @@ export const RolesAdmin: React.FC = () => {
                   className={`w-full text-left group p-3 rounded-lg border transition-colors ${active ? 'border-cyan-500/40 bg-cyan-500/10' : 'border-slate-700/50 bg-slate-900/30 hover:bg-slate-800/50'}`}
                 >
                   <div className="flex justify-between items-center mb-1 gap-3">
-                    <span className="font-medium text-slate-200">{role.replace(/_/g, ' ')}</span>
-                    <Badge variant={active ? 'info' : 'neutral'} size="sm">{count} permissions</Badge>
+                    <span className="font-medium text-slate-200">{t(roleLabelKey(role))}</span>
+                    <Badge variant={active ? 'info' : 'neutral'} size="sm">{t('permissions_count', { count })}</Badge>
                   </div>
-                  <p className="text-xs text-slate-500">{roleDescription(role)}</p>
+                  <p className="text-xs text-slate-500">{t(roleDescriptionKey(role))}</p>
                 </button>
               );
             })}
@@ -170,23 +192,23 @@ export const RolesAdmin: React.FC = () => {
           <GlassCard>
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
-                <h3 className="text-xl font-bold text-white">{selectedRole.replace(/_/g, ' ')}</h3>
-                <p className="text-sm text-slate-500 mt-1">Toggle the permissions that should be granted by default for this role.</p>
+                <h3 className="text-xl font-bold text-white">{t(roleLabelKey(selectedRole))}</h3>
+                <p className="text-sm text-slate-500 mt-1">{t('toggle_default_role_permissions')}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <Badge variant="info" size="sm">Selected: {selectedRoleCount}</Badge>
-                  <Badge variant="neutral" size="sm">Default: {defaultCount}</Badge>
-                  {hasChanges && <Badge variant="warning" size="sm">Unsaved changes</Badge>}
+                  <Badge variant="info" size="sm">{t('selected_count', { count: selectedRoleCount })}</Badge>
+                  <Badge variant="neutral" size="sm">{t('default_count', { count: defaultCount })}</Badge>
+                  {hasChanges && <Badge variant="warning" size="sm">{t('unsaved_changes')}</Badge>}
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
                 <Button variant="secondary" size="sm" onClick={resetSelectedRole} disabled={loading || saving || !hasChanges}>
                   <RotateCcw className="w-4 h-4 mr-1.5" />
-                  Reset role
+                  {t('reset_role')}
                 </Button>
                 <Button onClick={handleSave} disabled={loading || saving || !hasChanges}>
                   <Save className="w-4 h-4 mr-1.5" />
-                  {saving ? 'Saving...' : 'Save changes'}
+                  {saving ? t('saving_dots') : t('save_changes')}
                 </Button>
               </div>
             </div>
@@ -215,7 +237,7 @@ export const RolesAdmin: React.FC = () => {
             </div>
 
             {saveMessage && (
-              <div className={`mt-5 rounded-xl border px-4 py-3 text-sm ${saveMessage.includes('Failed') ? 'border-rose-500/20 bg-rose-500/10 text-rose-300' : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'}`}>
+              <div className={`mt-5 rounded-xl border px-4 py-3 text-sm ${saveMessageKind === 'error' ? 'border-rose-500/20 bg-rose-500/10 text-rose-300' : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'}`}>
                 {saveMessage}
               </div>
             )}
@@ -226,10 +248,10 @@ export const RolesAdmin: React.FC = () => {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="bg-slate-900/50 border-b border-slate-700/50">
-                    <th className="p-4 font-medium text-slate-400 min-w-[150px]">Role / Capability</th>
-                    {['Dashboard', 'Clients', 'Projects', 'Finance', 'Users', 'System'].map((label) => (
+                    <th className="p-4 font-medium text-slate-400 min-w-[150px]">{t('role_capability')}</th>
+                    {['dashboard', 'clients', 'projects', 'financials', 'users', 'system'].map((label) => (
                       <th key={label} className="p-4 font-medium text-slate-400 text-center min-w-[80px]">
-                        {label}
+                        {t(label)}
                       </th>
                     ))}
                   </tr>
@@ -246,7 +268,7 @@ export const RolesAdmin: React.FC = () => {
                     ];
                     return (
                       <tr key={role} className="hover:bg-slate-800/30 transition-colors">
-                        <td className="p-4 font-medium text-slate-300">{role.replace(/_/g, ' ')}</td>
+                        <td className="p-4 font-medium text-slate-300">{t(roleLabelKey(role))}</td>
                         {summaryPermissions.map((permission) => {
                           const active = (rolePermissions[role] || []).includes(permission);
                           return (
@@ -270,7 +292,7 @@ export const RolesAdmin: React.FC = () => {
             <div className="p-4 bg-slate-900/30 border-t border-slate-800">
               <p className="flex gap-2 items-center text-xs text-slate-500">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
-                Role defaults are stored per organization. Users can still receive extra access via Admin → Users.
+                {t('roles_admin_footer')}
               </p>
             </div>
           </GlassCard>

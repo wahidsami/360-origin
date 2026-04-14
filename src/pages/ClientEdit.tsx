@@ -72,7 +72,7 @@ export const ClientEdit: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clientId) return;
+  if (!clientId) return;
     setLoading(true);
     try {
       let logoId = undefined; // Undefined means no change to existing logo field
@@ -115,7 +115,7 @@ export const ClientEdit: React.FC = () => {
     }
   };
 
-  if (fetching) return <div className="p-10 text-center text-slate-500">Retrieving configuration...</div>;
+  if (fetching) return <div className="p-10 text-center text-slate-500">{t('retrieving_configuration')}</div>;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -125,7 +125,7 @@ export const ClientEdit: React.FC = () => {
         </Button>
         <div>
           <h1 className="text-3xl font-bold font-display text-white">{t('edit_client')}</h1>
-          <p className="text-slate-400">Update entity configuration.</p>
+          <p className="text-slate-400">{t('update_entity_configuration')}</p>
         </div>
       </div>
 
@@ -134,7 +134,7 @@ export const ClientEdit: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
               <ImageUpload
-                label="Company Logo"
+                label={t('company_logo')}
                 initialPreview={logoPreview}
                 onFileSelect={setLogoFile}
               />
@@ -150,9 +150,9 @@ export const ClientEdit: React.FC = () => {
             <div>
               <Label htmlFor="status">{t('status')}</Label>
               <Select name="status" id="status" value={formData.status} onChange={handleChange}>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="archived">Archived</option>
+                <option value="active">{t('active')}</option>
+                <option value="inactive">{t('inactive')}</option>
+                <option value="archived">{t('archived')}</option>
               </Select>
             </div>
             <div>
@@ -169,7 +169,7 @@ export const ClientEdit: React.FC = () => {
               <Input name="contactPerson" id="contactPerson" required value={formData.contactPerson} onChange={handleChange} />
             </div>
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('email_address')}</Label>
               <Input name="email" id="email" type="email" required value={formData.email} onChange={handleChange} />
             </div>
             <div>
@@ -210,7 +210,7 @@ export const ClientEdit: React.FC = () => {
           <Button type="button" variant="ghost" onClick={handleGoBack}>{t('cancel')}</Button>
           <Button type="submit" disabled={loading} className="w-40">
             <Save className="w-4 h-4 mr-2" />
-            {loading ? 'Updating...' : t('update_client')}
+            {loading ? t('updating_dots') : t('update_client')}
           </Button>
         </div>
       </form>

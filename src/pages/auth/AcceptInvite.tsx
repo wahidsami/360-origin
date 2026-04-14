@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '@/services/api';
 import { Lock, ArrowRight, CheckCircle, AlertTriangle } from 'lucide-react';
 
 const AcceptInvite: React.FC = () => {
+    const { t } = useTranslation();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const token = searchParams.get('token');
@@ -16,18 +18,18 @@ const AcceptInvite: React.FC = () => {
 
     useEffect(() => {
         if (!token) {
-            setError("Invalid invite link. Token missing.");
+            setError(t('invalid_invite_link_missing_token'));
         }
-    }, [token]);
+    }, [t, token]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (password !== confirmPassword) {
-            setError("Passwords do not match");
+            setError(t('passwords_do_not_match'));
             return;
         }
         if (password.length < 6) {
-            setError("Password must be at least 6 characters");
+            setError(t('password_min_length'));
             return;
         }
 
@@ -42,7 +44,7 @@ const AcceptInvite: React.FC = () => {
             }, 3000);
         } catch (err: any) {
             console.error(err);
-            setError(err.message || "Failed to set password. Link may be expired.");
+            setError(err.message || t('failed_to_set_password_link_may_be_expired'));
         } finally {
             setLoading(false);
         }
@@ -55,13 +57,13 @@ const AcceptInvite: React.FC = () => {
                     <div className="w-16 h-16 bg-[hsl(var(--brand-success)/0.2)] rounded-full flex items-center justify-center mx-auto mb-6">
                         <CheckCircle className="w-8 h-8 text-[hsl(var(--brand-success))]" />
                     </div>
-                    <h2 className="text-2xl font-bold text-white mb-2">Account Activated!</h2>
-                    <p className="text-slate-400 mb-6">Your password has been set successfully. Use your email and new password to login.</p>
+                    <h2 className="text-2xl font-bold text-white mb-2">{t('account_activated')}</h2>
+                    <p className="text-slate-400 mb-6">{t('password_set_successfully_use_email_login')}</p>
                     <button
                         onClick={() => navigate('/login')}
                         className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-medium py-2.5 rounded-lg transition-colors"
                     >
-                        Go to Login
+                        {t('go_to_login')}
                     </button>
                 </div>
             </div>
@@ -82,9 +84,9 @@ const AcceptInvite: React.FC = () => {
                         <span className="text-xl font-bold text-white">Arena 360</span>
                     </div>
 
-                    <h2 className="text-xl font-semibold text-white mb-2">Set Your Password</h2>
+                    <h2 className="text-xl font-semibold text-white mb-2">{t('set_your_password')}</h2>
                     <p className="text-slate-400 text-sm mb-6">
-                        Complete your account setup by creating a secure password.
+                        {t('complete_account_setup')}
                     </p>
 
                     {error && (
@@ -96,7 +98,7 @@ const AcceptInvite: React.FC = () => {
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1.5">New Password</label>
+                            <label className="block text-sm font-medium text-slate-300 mb-1.5">{t('new_password')}</label>
                             <div className="relative">
                                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                                 <input
@@ -104,14 +106,14 @@ const AcceptInvite: React.FC = () => {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-cyan-500 transition-colors"
-                                    placeholder="Min. 6 characters"
+                                    placeholder={t('min_6_characters')}
                                     required
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1.5">Confirm Password</label>
+                            <label className="block text-sm font-medium text-slate-300 mb-1.5">{t('confirm_password')}</label>
                             <div className="relative">
                                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                                 <input
@@ -119,7 +121,7 @@ const AcceptInvite: React.FC = () => {
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                     className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-cyan-500 transition-colors"
-                                    placeholder="Re-enter password"
+                                    placeholder={t('re_enter_password')}
                                     required
                                 />
                             </div>
@@ -130,7 +132,7 @@ const AcceptInvite: React.FC = () => {
                             disabled={loading || !token}
                             className={`w-full bg-cyan-600 hover:bg-cyan-500 text-white font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 ${loading || !token ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                            {loading ? 'Activating...' : 'Activate Account'}
+                            {loading ? t('activating_dots') : t('activate_account')}
                             {!loading && <ArrowRight className="w-4 h-4" />}
                         </button>
                     </form>

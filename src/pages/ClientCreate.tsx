@@ -95,7 +95,7 @@ export const ClientCreate: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
               <ImageUpload
-                label="Company Logo"
+                label={t('company_logo')}
                 onFileSelect={setLogoFile}
               />
             </div>
@@ -110,8 +110,8 @@ export const ClientCreate: React.FC = () => {
             <div>
               <Label htmlFor="status">{t('status')}</Label>
               <Select name="status" id="status" value={formData.status} onChange={handleChange}>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="active">{t('active')}</option>
+                <option value="inactive">{t('inactive')}</option>
               </Select>
             </div>
             <div>
@@ -128,7 +128,7 @@ export const ClientCreate: React.FC = () => {
               <Input name="contactPerson" id="contactPerson" required value={formData.contactPerson} onChange={handleChange} />
             </div>
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('email_address')}</Label>
               <Input name="email" id="email" type="email" required value={formData.email} onChange={handleChange} />
             </div>
             <div>
@@ -169,7 +169,7 @@ export const ClientCreate: React.FC = () => {
           <Button type="button" variant="ghost" onClick={handleGoBack}>{t('cancel')}</Button>
           <Button type="submit" disabled={loading} className="w-40">
             <Save className="w-4 h-4 mr-2" />
-            {loading ? 'Saving...' : t('save_client')}
+            {loading ? t('saving_dots') : t('save_client')}
           </Button>
         </div>
       </form>

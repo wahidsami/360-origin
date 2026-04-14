@@ -640,7 +640,7 @@ export const ProjectDetails: React.FC = () => {
   };
 
   if (isLoadingProject) return <div className="p-10 text-center text-slate-500">{t('loading_mission_data')}</div>;
-  if (!project) return <div className="p-10 text-center text-slate-500">Project not found.</div>;
+  if (!project) return <div className="p-10 text-center text-slate-500">{t('project_not_found')}</div>;
 
   return (
     <div className="space-y-6">
@@ -666,8 +666,8 @@ export const ProjectDetails: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-3 items-center">
-          <Button variant="outline" size="sm" onClick={() => openAI({ projectId: project.id })} title="AI Assistant">
-            <Sparkles className="w-4 h-4 mr-1" /> AI
+          <Button variant="outline" size="sm" onClick={() => openAI({ projectId: project.id })} title={t('ai_assistant')}>
+            <Sparkles className="w-4 h-4 mr-1" /> {t('ai_assistant_short')}
           </Button>
           <Badge variant={project.status === 'in_progress' ? 'info' : project.status === 'deployed' ? 'success' : 'neutral'}>
             {projectStatusLabel.toUpperCase()}
@@ -719,10 +719,10 @@ export const ProjectDetails: React.FC = () => {
 
       {/* Tab Content */}
       <div className="min-h-[400px]">
-        <ErrorBoundary fallback={<div className="p-10 text-center text-rose-400 bg-rose-500/5 border border-rose-500/10 rounded-xl">Something went wrong in this tab. Please try refreshing.</div>}>
+        <ErrorBoundary fallback={<div className="p-10 text-center text-rose-400 bg-rose-500/5 border border-rose-500/10 rounded-xl">{t('tab_error_refresh')}</div>}>
           <React.Suspense fallback={<div className="p-10 text-center text-slate-500 animate-pulse flex flex-col items-center gap-2 font-display">
             <Sparkles className="w-8 h-8 text-cyan-500 animate-spin" />
-            Loading {activeTab}...
+            {t('loading_tab', { tab: t(`tab_${activeTab}`, { defaultValue: activeTab }) })}
           </div>}>
             {activeTab === 'overview' && (
               <div className="relative">
@@ -745,7 +745,7 @@ export const ProjectDetails: React.FC = () => {
                     if (visibleTabs.some(t => t.id === tab)) {
                       handleTabChange(tab);
                     } else {
-                      toast.error('You do not have permission to view this tab.');
+                      toast.error(t('permission_denied_tab'));
                     }
                   }}
                   onAction={handleReadinessAction}
@@ -762,8 +762,8 @@ export const ProjectDetails: React.FC = () => {
                       <div className="flex items-center gap-3">
                         <Sparkles className="h-5 w-5 animate-spin text-cyan-500" />
                         <div>
-                          <p className="text-sm font-semibold text-slate-900 dark:text-white">Loading workflow readiness...</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">Overview insights are loading in the background.</p>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white">{t('loading_workflow_readiness')}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{t('overview_insights_background')}</p>
                         </div>
                       </div>
                     </div>

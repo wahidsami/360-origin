@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Layers3 } from 'lucide-react';
 import { Badge, GlassCard, Label, Select } from '@/components/ui/UIComponents';
 import { WorkspaceTemplateOption, summarizeWorkspaceDraft } from '@/features/project-workspace/helpers';
@@ -24,6 +25,7 @@ export const WorkspaceTemplateSelector: React.FC<WorkspaceTemplateSelectorProps>
   error = null,
   disabled = false,
 }) => {
+  const { t } = useTranslation();
   const selectedOption = options.find((option) => option.id === selectedOptionId) || null;
   const summary = summarizeWorkspaceDraft(selectedOption?.draft);
 
@@ -41,16 +43,16 @@ export const WorkspaceTemplateSelector: React.FC<WorkspaceTemplateSelectorProps>
 
       {loading ? (
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400">
-          Loading workspace templates…
+          {t('workspace_loading_templates')}
         </div>
       ) : options.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-          No workspace templates are available for this client yet.
+          {t('workspace_no_templates_available')}
         </div>
       ) : (
         <>
           <div>
-            <Label>Workspace Template</Label>
+            <Label>{t('workspace_template')}</Label>
             <Select value={selectedOptionId} onChange={(event) => onChange(event.target.value)} disabled={disabled}>
               {options.map((option) => (
                 <option key={option.id} value={option.id}>
@@ -78,29 +80,29 @@ export const WorkspaceTemplateSelector: React.FC<WorkspaceTemplateSelectorProps>
 
               <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950/40">
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Interactive</p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t('workspace_interactive')}</p>
                   <p className="mt-1 text-2xl font-black text-[hsl(var(--brand-success))] dark:text-[hsl(var(--brand-success))]">{summary.interactiveCount}</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950/40">
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Read only</p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t('workspace_read_only')}</p>
                   <p className="mt-1 text-2xl font-black text-[hsl(var(--brand-warning))] dark:text-[hsl(var(--brand-warning))]">{summary.readOnlyCount}</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950/40">
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Hidden</p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t('hidden')}</p>
                   <p className="mt-1 text-2xl font-black text-slate-700 dark:text-slate-200">{summary.hiddenCount}</p>
                 </div>
               </div>
 
               {summary.hiddenLabels.length > 0 && (
                 <div className="mt-4">
-                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Hidden Tabs</p>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{t('hidden_tabs')}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {summary.hiddenLabels.slice(0, 8).map((label) => (
                       <Badge key={label} variant="neutral" className="bg-slate-200/70 dark:bg-slate-800/80">
                         {label}
                       </Badge>
                     ))}
-                    {summary.hiddenLabels.length > 8 && <Badge variant="neutral">+{summary.hiddenLabels.length - 8} more</Badge>}
+                    {summary.hiddenLabels.length > 8 && <Badge variant="neutral">{t('more_count', { count: summary.hiddenLabels.length - 8 })}</Badge>}
                   </div>
                 </div>
               )}

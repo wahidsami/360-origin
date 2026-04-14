@@ -32,6 +32,7 @@ interface OverviewTabProps {
 
 // --- NEW SUB-COMPONENTS ---
 function ChecklistSection({ title, items, isComplete, onAction, onNavigate }: { title: string, items: any[], isComplete: boolean, onAction?: any, onNavigate?: any }) {
+    const { t } = useTranslation();
     const [isExpanded, setIsExpanded] = React.useState(!isComplete);
 
     return (
@@ -61,7 +62,7 @@ function ChecklistSection({ title, items, isComplete, onAction, onNavigate }: { 
                                 <span className={`text-[10px] font-bold tracking-wider ${item.status === 'complete' ? 'text-slate-400' : item.status === 'missing' && item.type === 'required' ? 'text-rose-900 dark:text-white' : 'text-slate-600 dark:text-slate-300'}`}>{item.label}</span>
                                 {item.action && item.status !== 'complete' && (
                                     <Button variant="ghost" size="sm" className="h-6 text-[9px] uppercase font-black text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 px-2" onClick={(e) => { e.stopPropagation(); if (item.action.type === 'navigate_tab') { onNavigate?.(item.action.target); } else { onAction?.(item.action); } }}>
-                                        Fix &rarr;
+                                        {t('fix_arrow')}
                                     </Button>
                                 )}
                             </div>
@@ -74,6 +75,7 @@ function ChecklistSection({ title, items, isComplete, onAction, onNavigate }: { 
 }
 
 function ActivityFeed({ activities }: { activities: any[] }) {
+    const { t } = useTranslation();
     const condensedActivities = React.useMemo(() => {
         const grouped: Array<any & { count: number; groupKey: string }> = [];
 
@@ -103,7 +105,7 @@ function ActivityFeed({ activities }: { activities: any[] }) {
 
     return (
         <GlassCard className="p-6 border-slate-200 dark:border-slate-800 bg-white">
-            <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">RECENT ACTIVITY</h4>
+            <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">{t('recent_activity')}</h4>
             <div className="space-y-4 max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 pr-2">
                 {condensedActivities.map(activity => (
                     <div key={activity.id} className="flex gap-3 text-sm">
@@ -119,11 +121,11 @@ function ActivityFeed({ activities }: { activities: any[] }) {
                                     </Badge>
                                 )}
                             </div>
-                            <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-normal">{activity.description || 'Action performed'}</p>
+                            <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-normal">{activity.description || t('action_performed')}</p>
                         </div>
                     </div>
                 ))}
-                {condensedActivities.length === 0 && <p className="text-xs text-slate-500 italic text-center py-4">No recent activity.</p>}
+                {condensedActivities.length === 0 && <p className="text-xs text-slate-500 italic text-center py-4">{t('no_recent_activity')}</p>}
             </div>
         </GlassCard>
     );
@@ -160,8 +162,8 @@ function PredictiveInsights({ project, tasks, milestones, metrics }: { project: 
                 predictions.push({
                     type: 'schedule_risk',
                     severity: variance > 14 ? 'high' : 'medium',
-                    message: `At current velocity, projected completion: ${projectedDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`,
-                    impact: `${variance} days late`,
+                    message: t('at_current_velocity_projected_completion', { date: projectedDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) }),
+                    impact: t('days_late', { count: variance }),
                     icon: '📊'
                 });
             }
@@ -178,8 +180,8 @@ function PredictiveInsights({ project, tasks, milestones, metrics }: { project: 
             predictions.push({
                 type: 'assignment_gap',
                 severity: 'medium',
-                message: `${unassignedTasks.length} unassigned tasks blocking ${dependentTasks.length} dependent items`,
-                impact: 'Work cannot proceed',
+                message: t('unassigned_tasks_blocking_dependent_items', { tasks: unassignedTasks.length, dependents: dependentTasks.length }),
+                impact: t('work_cannot_proceed'),
                 icon: '👤'
             });
         }
@@ -245,18 +247,18 @@ function QuickActionsPanel({ project, onNavigate, onAction, onRefresh, overdueCo
                     )}
                     {canSee('updates') && (
                         <button onClick={() => { setIsOpen(false); onNavigate?.('updates'); }} className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition-colors">
-                            <span className="text-cyan-600">📋</span> Post Update
+                            <span className="text-cyan-600">📋</span> {t('post_update_short')}
                         </button>
                     )}
                     {canSee('findings') && !isClient && (
                         <button onClick={() => { setIsOpen(false); onNavigate?.('findings'); }} className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition-colors">
-                            <span className="text-rose-500">⚠️</span> Log Risk/Finding
+                            <span className="text-rose-500">⚠️</span> {t('log_risk_finding')}
                         </button>
                     )}
 
                     {canSee('tasks') && !isClient && overdueCount > 0 && (
                         <button onClick={() => { setIsOpen(false); onNavigate?.('tasks'); }} className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-[11px] font-bold text-orange-700 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-500/10 rounded-lg transition-colors mt-1 border border-orange-200 dark:border-orange-500/20 bg-orange-50 dark:bg-orange-500/5">
-                            <span>✅</span> Complete Overdue ({overdueCount})
+                            <span>✅</span> {t('complete_overdue')} ({overdueCount})
                         </button>
                     )}
 
@@ -266,7 +268,7 @@ function QuickActionsPanel({ project, onNavigate, onAction, onRefresh, overdueCo
                     }}
                         className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg transition-colors"
                     >
-                        <span className="text-blue-600">🔄</span> Refresh Data
+                        <span className="text-blue-600">🔄</span> {t('refresh_data')}
                     </button>
                 </div>
             )}
@@ -297,9 +299,9 @@ export const OverviewTab: React.FC<OverviewTabProps & { onRefresh?: () => void }
         const due = new Date(date);
         due.setHours(23, 59, 59, 999);
         const days = Math.ceil((due.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-        if (days === 0) return 'today';
-        if (days === 1) return 'tomorrow';
-        if (days > 1 && days < 7) return `in ${days} days`;
+        if (days === 0) return t('today');
+        if (days === 1) return t('tomorrow');
+        if (days > 1 && days < 7) return t('in_n_days', { count: days });
         return new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     };
 
@@ -308,7 +310,7 @@ export const OverviewTab: React.FC<OverviewTabProps & { onRefresh?: () => void }
         .map(t => {
             let isOverdue = false;
             let daysRef = Infinity;
-            let dueText = 'No due date';
+            let dueText = t('no_due_date');
 
             if (t.dueDate) {
                 const due = new Date(t.dueDate);
@@ -320,9 +322,9 @@ export const OverviewTab: React.FC<OverviewTabProps & { onRefresh?: () => void }
 
                 if (isOverdue) {
                     const daysLate = Math.ceil(Math.abs(daysRef));
-                    dueText = `${daysLate} day${daysLate === 1 ? '' : 's'} late`;
+                    dueText = t('days_late', { count: daysLate });
                 } else {
-                    dueText = `Due ${formatRelativeDate(t.dueDate)}`;
+                    dueText = t('due_prefix', { date: formatRelativeDate(t.dueDate) });
                 }
             }
 
@@ -338,10 +340,10 @@ export const OverviewTab: React.FC<OverviewTabProps & { onRefresh?: () => void }
     const completedMilestones = stats?.completedMilestones || 0;
     const atRiskMilestones = stats?.atRiskMilestones || 0;
     const milestoneRiskLabel = atRiskMilestones > 0
-        ? `${atRiskMilestones} at risk`
+        ? t('at_risk_count', { count: atRiskMilestones })
         : milestoneCount > 0
-            ? `${completedMilestones}/${milestoneCount} done`
-            : 'No milestones';
+            ? t('done_count_summary', { completed: completedMilestones, total: milestoneCount })
+            : t('no_milestones');
 
     const findingCount = stats?.findingCount || 0;
     const unresolvedFindings = stats?.unresolvedFindings || 0;
@@ -480,7 +482,7 @@ export const OverviewTab: React.FC<OverviewTabProps & { onRefresh?: () => void }
                 {showSection('readiness_checklist') && (
                     <GlassCard className="p-6 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 flex flex-col gap-4">
                         <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
-                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Checklist</h4>
+                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">{t('checklist')}</h4>
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                                 {readinessSections.coreItems.length > 0 && <ChecklistSection
                                       title={t('core_setup')}
@@ -529,14 +531,14 @@ export const OverviewTab: React.FC<OverviewTabProps & { onRefresh?: () => void }
 
                     <div className="space-y-3 mb-5">
                         <div className="flex h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
-                            <div className="bg-[hsl(var(--brand-success))] transition-all duration-500" style={{ width: `${(completedTasks / (taskCount || 1)) * 100}%` }} title="Done" />
-                            <div className="bg-blue-500 transition-all duration-500" style={{ width: `${(activeTasks / (taskCount || 1)) * 100}%` }} title="Active" />
-                            <div className="bg-rose-500 transition-all duration-500" style={{ width: `${(overdueTasks / (taskCount || 1)) * 100}%` }} title="Overdue" />
+                            <div className="bg-[hsl(var(--brand-success))] transition-all duration-500" style={{ width: `${(completedTasks / (taskCount || 1)) * 100}%` }} title={t('done')} />
+                            <div className="bg-blue-500 transition-all duration-500" style={{ width: `${(activeTasks / (taskCount || 1)) * 100}%` }} title={t('active')} />
+                            <div className="bg-rose-500 transition-all duration-500" style={{ width: `${(overdueTasks / (taskCount || 1)) * 100}%` }} title={t('overdue')} />
                         </div>
                         <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">
-                            <span className="text-[hsl(var(--brand-success))] dark:text-[hsl(var(--brand-success)/0.8)]">{completedTasks} D</span>
-                            <span className="text-blue-600 dark:text-blue-400/80">{activeTasks} A</span>
-                            <span className={overdueTasks > 0 ? 'text-rose-600 dark:text-rose-400/80' : ''}>{overdueTasks} O</span>
+                            <span className="text-[hsl(var(--brand-success))] dark:text-[hsl(var(--brand-success)/0.8)]">{completedTasks} {t('done')}</span>
+                            <span className="text-blue-600 dark:text-blue-400/80">{activeTasks} {t('active')}</span>
+                            <span className={overdueTasks > 0 ? 'text-rose-600 dark:text-rose-400/80' : ''}>{overdueTasks} {t('overdue')}</span>
                         </div>
                     </div>
 
@@ -547,7 +549,7 @@ export const OverviewTab: React.FC<OverviewTabProps & { onRefresh?: () => void }
                                     <Flag className="w-4 h-4" />
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Milestones</p>
+                                    <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t('milestones')}</p>
                                     <p className="text-sm font-black text-slate-900 dark:text-white">{milestoneCount}</p>
                                 </div>
                             </div>
@@ -555,7 +557,7 @@ export const OverviewTab: React.FC<OverviewTabProps & { onRefresh?: () => void }
                                 <p className={`text-[10px] font-black uppercase tracking-widest ${atRiskMilestones > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500 dark:text-slate-400'}`}>
                                     {milestoneRiskLabel}
                                 </p>
-                                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">{completedMilestones} completed</p>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">{completedMilestones} {t('completed')}</p>
                             </div>
                         </div>
                     </div>
@@ -601,17 +603,17 @@ export const OverviewTab: React.FC<OverviewTabProps & { onRefresh?: () => void }
                         <div className="mb-4 rounded-xl border border-rose-200 dark:border-rose-500/20 bg-rose-50 dark:bg-rose-500/10 p-3">
                             <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-rose-500 dark:text-rose-400 mb-1">Critical Alert</p>
-                                    <p className="text-sm font-black text-rose-700 dark:text-rose-300">{criticalFindingCount} critical finding{criticalFindingCount === 1 ? '' : 's'} need attention</p>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-rose-500 dark:text-rose-400 mb-1">{t('critical_alert')}</p>
+                                    <p className="text-sm font-black text-rose-700 dark:text-rose-300">{t('critical_findings_need_attention', { count: criticalFindingCount, suffix: criticalFindingCount === 1 ? '' : 's' })}</p>
                                     <p className="text-xs text-rose-700/80 dark:text-rose-300/80 truncate mt-1">
-                                        {mostCriticalFinding?.title || criticalFindingAlert?.description || 'Review critical findings and unblock the team.'}
+                                        {mostCriticalFinding?.title || criticalFindingAlert?.description || t('review_critical_findings_and_unblock_the_team')}
                                     </p>
                                     {criticalFindingAlert?.details?.recommendation && (
                                         <p className="text-[10px] font-bold text-rose-700 dark:text-rose-300 mt-2">{criticalFindingAlert.details.recommendation}</p>
                                     )}
                                 </div>
                                 <Badge variant="danger" className="text-[9px] px-1.5 py-0.5 font-black uppercase tracking-widest">
-                                    Act now
+                                    {t('act_now')}
                                 </Badge>
                             </div>
                         </div>
@@ -632,46 +634,46 @@ export const OverviewTab: React.FC<OverviewTabProps & { onRefresh?: () => void }
                                     <div className="flex items-center gap-3">
                                         <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]" />
                                         <span className="text-sm font-black text-rose-700 dark:text-rose-400 w-6">{findingsBySeverity.CRITICAL}</span>
-                                        <span className="text-[10px] uppercase font-black text-slate-500 dark:text-slate-400 tracking-widest">Critical</span>
+                                        <span className="text-[10px] uppercase font-black text-slate-500 dark:text-slate-400 tracking-widest">{t('critical')}</span>
                                     </div>
                                 )}
                                 {findingsBySeverity.HIGH && findingsBySeverity.HIGH > 0 && (
                                     <div className="flex items-center gap-3">
                                         <div className="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]" />
                                         <span className="text-sm font-black text-orange-700 dark:text-orange-400 w-6">{findingsBySeverity.HIGH}</span>
-                                        <span className="text-[10px] uppercase font-black text-slate-500 dark:text-slate-400 tracking-widest">High</span>
+                                        <span className="text-[10px] uppercase font-black text-slate-500 dark:text-slate-400 tracking-widest">{t('high')}</span>
                                     </div>
                                 )}
                                 {findingsBySeverity.MEDIUM && findingsBySeverity.MEDIUM > 0 && (
                                     <div className="flex items-center gap-3">
                                         <div className="w-2.5 h-2.5 rounded-full bg-[hsl(var(--brand-warning))]" />
                                         <span className="text-sm font-black text-[hsl(var(--brand-warning))] dark:text-[hsl(var(--brand-warning))] w-6">{findingsBySeverity.MEDIUM}</span>
-                                        <span className="text-[10px] uppercase font-black text-slate-500 dark:text-slate-400 tracking-widest">Medium</span>
+                                        <span className="text-[10px] uppercase font-black text-slate-500 dark:text-slate-400 tracking-widest">{t('medium')}</span>
                                     </div>
                                 )}
                                 {findingsBySeverity.LOW && findingsBySeverity.LOW > 0 && (
                                     <div className="flex items-center gap-3">
                                         <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
                                         <span className="text-sm font-black text-blue-700 dark:text-blue-400 w-6">{findingsBySeverity.LOW}</span>
-                                        <span className="text-[10px] uppercase font-black text-slate-500 dark:text-slate-400 tracking-widest">Low</span>
+                                        <span className="text-[10px] uppercase font-black text-slate-500 dark:text-slate-400 tracking-widest">{t('low')}</span>
                                     </div>
                                 )}
                             </div>
 
                             {mostCriticalFinding && (
                                 <div className="mt-auto bg-slate-800/40 border border-slate-700/60 rounded-lg p-3">
-                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Oldest / Most Severe</p>
+                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">{t('oldest_most_severe')}</p>
                                     <p className="text-xs font-semibold text-slate-300 truncate mb-2">{mostCriticalFinding.title}</p>
                                     <div className="flex justify-between items-center text-[9px] text-slate-500 font-medium">
-                                        <span className="truncate max-w-[100px]">Assigned: {mostCriticalFinding.assignedToName || mostCriticalFinding.assignedTo?.name || 'Unassigned'}</span>
-                                        <span>Age: {mostCriticalFinding.createdAt ? Math.floor((Date.now() - new Date(mostCriticalFinding.createdAt).getTime()) / (1000 * 60 * 60 * 24)) : 0}d</span>
+                                        <span className="truncate max-w-[100px]">{t('assigned_colon', { name: mostCriticalFinding.assignedToName || mostCriticalFinding.assignedTo?.name || t('unassigned') })}</span>
+                                        <span>{t('age_days', { days: mostCriticalFinding.createdAt ? Math.floor((Date.now() - new Date(mostCriticalFinding.createdAt).getTime()) / (1000 * 60 * 60 * 24)) : 0 })}</span>
                                     </div>
                                 </div>
                             )}
 
                             {canSee('findings') && (
                                 <div className="mt-4 text-center">
-                                    <span className="text-[10px] text-cyan-500/80 hover:text-cyan-400 font-bold uppercase tracking-wider group-hover:underline">View all findings &rarr;</span>
+                                    <span className="text-[10px] text-cyan-500/80 hover:text-cyan-400 font-bold uppercase tracking-wider group-hover:underline">{t('view_all_findings')} &rarr;</span>
                                 </div>
                             )}
                         </>
@@ -690,7 +692,7 @@ export const OverviewTab: React.FC<OverviewTabProps & { onRefresh?: () => void }
                                 <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
                                     <Activity className="w-4 h-4 text-blue-500" /> {t('team_capacity')}
                                 </h3>
-                                {highLoadMembers.length > 0 && <Badge variant="danger" className="text-[9px] px-1.5 py-0.5 shadow-sm">{highLoadMembers.length} High Load</Badge>}
+                                {highLoadMembers.length > 0 && <Badge variant="danger" className="text-[9px] px-1.5 py-0.5 shadow-sm">{highLoadMembers.length} {t('high_load')}</Badge>}
                             </div>
 
                             {capacityMembers.length > 0 ? (
@@ -698,9 +700,9 @@ export const OverviewTab: React.FC<OverviewTabProps & { onRefresh?: () => void }
                             <table className="w-full text-left border-collapse mb-1">
                                 <thead>
                                     <tr className="border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                                        <th className="pb-2 font-medium">Member</th>
-                                        <th className="pb-2 font-medium text-center">Tasks</th>
-                                        <th className="pb-2 font-medium text-right">Status</th>
+                                        <th className="pb-2 font-medium">{t('member')}</th>
+                                        <th className="pb-2 font-medium text-center">{t('tasks_count')}</th>
+                                        <th className="pb-2 font-medium text-right">{t('status_col')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -716,11 +718,11 @@ export const OverviewTab: React.FC<OverviewTabProps & { onRefresh?: () => void }
                                         };
                                         const getStatusLabel = (status: string) => {
                                             switch (status) {
-                                                case 'high': return '🔴 High';
-                                                case 'medium': return '🟡 Medium';
-                                                case 'low': return '🟢 Low';
-                                                case 'available': return '⚪ Available';
-                                                default: return '⚪ Unknown';
+                                                case 'high': return `🔴 ${t('high')}`;
+                                                case 'medium': return `🟡 ${t('medium')}`;
+                                                case 'low': return `🟢 ${t('low')}`;
+                                                case 'available': return `⚪ ${t('available')}`;
+                                                default: return `⚪ ${t('unknown')}`;
                                             }
                                         };
                                         const statusColor = getStatusColor(member.status);
@@ -741,12 +743,12 @@ export const OverviewTab: React.FC<OverviewTabProps & { onRefresh?: () => void }
                                                 </td>
                                                 <td className="py-2 text-right">
                                                     <span className="text-[10px] font-bold tracking-wider" style={{ color: statusColor }}>
-                                                        {getStatusLabel(member.status)}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
+                                        {getStatusLabel(member.status)}
+                                    </span>
+                                </td>
+                            </tr>
+                        );
+                    })}
                                 </tbody>
                             </table>
 
@@ -766,7 +768,7 @@ export const OverviewTab: React.FC<OverviewTabProps & { onRefresh?: () => void }
                             </>
                             ) : (
                                 <div className="flex items-center justify-center min-h-[220px] text-center text-slate-500 text-sm font-medium">
-                                    No team capacity data yet.
+                                    {t('no_team_capacity_data')}
                                 </div>
                             )}
                         </GlassCard>

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Sparkles, Send, X, Loader2, FileText, ListTodo, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/UIComponents';
 import { api } from '../services/api';
@@ -11,6 +12,7 @@ interface AIPanelProps {
 }
 
 export const AIPanel: React.FC<AIPanelProps> = ({ open, onClose, context }) => {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,8 +36,8 @@ export const AIPanel: React.FC<AIPanelProps> = ({ open, onClose, context }) => {
       );
       setMessages((m) => [...m, { role: 'assistant', content: res.reply }]);
     } catch (e) {
-      toast.error('AI request failed');
-      setMessages((m) => [...m, { role: 'assistant', content: 'Sorry, I could not respond. Check OPENAI_API_KEY and try again.' }]);
+      toast.error(t('ai_request_failed'));
+      setMessages((m) => [...m, { role: 'assistant', content: t('ai_could_not_respond') }]);
     } finally {
       setLoading(false);
     }
@@ -50,7 +52,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({ open, onClose, context }) => {
       setQuickResult(text);
       setMessages((m) => [...m, { role: 'assistant', content: text }]);
     } catch (e) {
-      toast.error(`${label} failed`);
+      toast.error(t('ai_request_failed'));
     } finally {
       setLoading(false);
     }
@@ -62,7 +64,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({ open, onClose, context }) => {
     <div className="fixed inset-y-0 right-0 z-[90] w-full max-w-md bg-slate-900 border-l border-slate-700 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
       <div className="flex items-center justify-between p-4 border-b border-slate-700">
         <span className="font-semibold text-white flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-cyan-400" /> Arena AI
+          <Sparkles className="w-5 h-5 text-cyan-400" /> {t('ai_assistant')}
         </span>
         <button type="button" onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-lg">
           <X className="w-5 h-5" />
@@ -75,25 +77,25 @@ export const AIPanel: React.FC<AIPanelProps> = ({ open, onClose, context }) => {
             variant="outline"
             size="sm"
             disabled={loading}
-            onClick={() => runAction('Summary', () => api.ai.projectSummary(context.projectId!))}
+            onClick={() => runAction(t('summary'), () => api.ai.projectSummary(context.projectId!))}
           >
-            <FileText className="w-3.5 h-3.5 mr-1" /> Summary
+            <FileText className="w-3.5 h-3.5 mr-1" /> {t('summary')}
           </Button>
           <Button
             variant="outline"
             size="sm"
             disabled={loading}
-            onClick={() => runAction('Suggest tasks', () => api.ai.suggestTasks(context.projectId!))}
+            onClick={() => runAction(t('suggest_tasks'), () => api.ai.suggestTasks(context.projectId!))}
           >
-            <ListTodo className="w-3.5 h-3.5 mr-1" /> Suggest tasks
+            <ListTodo className="w-3.5 h-3.5 mr-1" /> {t('suggest_tasks')}
           </Button>
           <Button
             variant="outline"
             size="sm"
             disabled={loading}
-            onClick={() => runAction('Status report', () => api.ai.statusReport(context.projectId!))}
+            onClick={() => runAction(t('status_report'), () => api.ai.statusReport(context.projectId!))}
           >
-            <FileText className="w-3.5 h-3.5 mr-1" /> Status report
+            <FileText className="w-3.5 h-3.5 mr-1" /> {t('status_report')}
           </Button>
         </div>
       )}
@@ -103,16 +105,16 @@ export const AIPanel: React.FC<AIPanelProps> = ({ open, onClose, context }) => {
             variant="outline"
             size="sm"
             disabled={loading}
-            onClick={() => runAction('Analyze', () => api.ai.analyzeFinding(context.findingId!))}
+            onClick={() => runAction(t('analyze_finding'), () => api.ai.analyzeFinding(context.findingId!))}
           >
-            <AlertCircle className="w-3.5 h-3.5 mr-1" /> Analyze finding
+            <AlertCircle className="w-3.5 h-3.5 mr-1" /> {t('analyze_finding')}
           </Button>
         </div>
       )}
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && !quickResult && (
-          <p className="text-slate-500 text-sm">Ask anything or use a quick action above.</p>
+          <p className="text-slate-500 text-sm">{t('ask_anything_or_use_quick_action_above')}</p>
         )}
         {quickResult && messages.length === 0 && (
           <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700 text-slate-200 text-sm whitespace-pre-wrap">
@@ -129,7 +131,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({ open, onClose, context }) => {
         ))}
         {loading && (
           <div className="flex items-center gap-2 text-slate-400 text-sm">
-            <Loader2 className="w-4 h-4 animate-spin" /> Thinking...
+            <Loader2 className="w-4 h-4 animate-spin" /> {t('thinking_dots')}
           </div>
         )}
         <div ref={bottomRef} />
@@ -141,7 +143,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({ open, onClose, context }) => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendChat()}
-          placeholder="Ask AI..."
+          placeholder={t('ask_ai')}
           className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500"
         />
         <Button size="sm" onClick={sendChat} disabled={loading}>

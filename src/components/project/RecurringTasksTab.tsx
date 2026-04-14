@@ -24,20 +24,19 @@ interface RecurringTasksTabProps {
   onRefreshTasks?: () => void;
 }
 
-const FREQUENCY_LABELS: Record<string, string> = {
-  DAILY: 'Daily',
-  WEEKLY: 'Weekly',
-  MONTHLY: 'Monthly',
-};
-
-function formatRecurrence(rule: { frequency: string; interval?: number; weekday?: number }): string {
+function formatRecurrence(
+  rule: { frequency: string; interval?: number; weekday?: number },
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
   const freq = (rule.frequency || 'DAILY').toUpperCase();
   const interval = rule.interval ?? 1;
-  const label = FREQUENCY_LABELS[freq] || freq;
-  if (interval > 1) return `Every ${interval} ${label.toLowerCase()}s`;
+  const unitKey = freq === 'WEEKLY' ? 'week_unit' : freq === 'MONTHLY' ? 'month_unit' : 'day_unit';
+  const label = t(freq === 'WEEKLY' ? 'weekly' : freq === 'MONTHLY' ? 'monthly' : 'daily');
+  if (interval > 1) return t('every_n_frequency', { count: interval, unit: t(`${unitKey}_${interval === 1 ? 'singular' : 'plural'}`) });
   if (freq === 'WEEKLY' && rule.weekday != null) {
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    return `Weekly on ${days[rule.weekday === 7 ? 0 : rule.weekday]}`;
+    const days = ['sun_short', 'mon_short', 'tue_short', 'wed_short', 'thu_short', 'fri_short', 'sat_short'];
+    const dayKey = days[rule.weekday === 7 ? 0 : rule.weekday];
+    return t('weekly_on_day', { day: t(dayKey) });
   }
   return label;
 }
@@ -143,9 +142,9 @@ export const RecurringTasksTab: React.FC<RecurringTasksTabProps> = ({ projectId,
 
   const handleDelete = async (templateId: string) => {
     const shouldDelete = await confirm({
-      title: 'Delete Template',
-      message: 'Delete this recurring task template?',
-      confirmText: 'Delete',
+      title: t('delete_template'),
+      message: t('delete_recurring_task_template_confirm'),
+      confirmText: t('delete'),
       tone: 'danger',
     });
     if (!shouldDelete) return;
@@ -211,10 +210,10 @@ export const RecurringTasksTab: React.FC<RecurringTasksTabProps> = ({ projectId,
                 onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}
                 className="w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2 text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
               >
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-                <option value="URGENT">Urgent</option>
+                <option value="LOW">{t('low')}</option>
+                <option value="MEDIUM">{t('medium')}</option>
+                <option value="HIGH">{t('high')}</option>
+                <option value="URGENT">{t('urgent')}</option>
               </select>
             </div>
             <div>
@@ -224,9 +223,9 @@ export const RecurringTasksTab: React.FC<RecurringTasksTabProps> = ({ projectId,
                 onChange={e => setForm(f => ({ ...f, frequency: e.target.value }))}
                 className="w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2 text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
               >
-                <option value="DAILY">Daily</option>
-                <option value="WEEKLY">Weekly</option>
-                <option value="MONTHLY">Monthly</option>
+                <option value="DAILY">{t('daily')}</option>
+                <option value="WEEKLY">{t('weekly')}</option>
+                <option value="MONTHLY">{t('monthly')}</option>
               </select>
             </div>
           </div>
@@ -239,8 +238,8 @@ export const RecurringTasksTab: React.FC<RecurringTasksTabProps> = ({ projectId,
                   onChange={e => setForm(f => ({ ...f, weekday: Number(e.target.value) }))}
                   className="w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-2 text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
                 >
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, i) => (
-                    <option key={d} value={i === 0 ? 7 : i}>{d}</option>
+                  {['sun_short', 'mon_short', 'tue_short', 'wed_short', 'thu_short', 'fri_short', 'sat_short'].map((d, i) => (
+                    <option key={d} value={i === 0 ? 7 : i}>{t(d)}</option>
                   ))}
                 </select>
               </div>
@@ -282,21 +281,21 @@ export const RecurringTasksTab: React.FC<RecurringTasksTabProps> = ({ projectId,
       )}
 
       <ul className="space-y-2">
-        {templates.map(t => (
-          <li key={t.id}>
+        {templates.map((template) => (
+          <li key={template.id}>
             <GlassCard className="p-4 flex items-center justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-slate-200">{t.title}</span>
-                  <span className="text-xs text-slate-500 uppercase">{t.priority}</span>
-                  {!t.isActive && <span className="text-xs text-[hsl(var(--brand-warning))]">Paused</span>}
+                  <span className="font-medium text-slate-200">{template.title}</span>
+                  <span className="text-xs text-slate-500 uppercase">{t(template.priority.toLowerCase())}</span>
+                  {!template.isActive && <span className="text-xs text-[hsl(var(--brand-warning))]">{t('pause')}</span>}
                 </div>
                 <p className="text-sm text-slate-500 mt-0.5">
-                  {formatRecurrence(t.recurrenceRule)}
+                  {formatRecurrence(template.recurrenceRule, t)}
                   {' · '}
                   <span className="inline-flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5" />
-                    Next: {new Date(t.nextRunAt).toLocaleString()}
+                    {t('next_run_time')}: {new Date(template.nextRunAt).toLocaleString()}
                   </span>
                 </p>
               </div>
@@ -304,24 +303,24 @@ export const RecurringTasksTab: React.FC<RecurringTasksTabProps> = ({ projectId,
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleToggleActive(t.id, t.isActive)}
-                  title={t.isActive ? 'Pause' : 'Resume'}
+                  onClick={() => handleToggleActive(template.id, template.isActive)}
+                  title={template.isActive ? t('pause') : t('resume')}
                   className="text-xs h-8 px-3"
                 >
-                  {t.isActive ? 'Pause' : 'Resume'}
+                  {template.isActive ? t('pause') : t('resume')}
                 </Button>
                 <div className="w-px h-6 bg-slate-800 mx-1" />
                 <button 
-                  onClick={() => openEdit(t)}
+                  onClick={() => openEdit(template)}
                   className="p-2 text-slate-400 hover:text-cyan-400 transition-colors"
-                  title="Edit Template"
+                  title={t('edit_template')}
                 >
                   <Pencil className="w-4 h-4" />
                 </button>
                 <button 
-                  onClick={() => handleDelete(t.id)}
+                  onClick={() => handleDelete(template.id)}
                   className="p-2 text-slate-400 hover:text-rose-400 transition-colors"
-                  title="Delete Template"
+                  title={t('delete_template')}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
