@@ -300,6 +300,7 @@ The finance module supports:
 
 The contract workflow now includes a Saudi-law-aware agreement builder that:
 - captures the counterparty legal name, representative, signer, jurisdiction, governing law, payment terms, and term summary
+- can optionally use AI to polish the long-form draft text fields before generation
 - lets admins toggle optional clauses such as confidentiality, data protection, intellectual property, termination, force majeure, and notices
 - generates a bilingual or single-language PDF agreement automatically after save
 - stores the generated agreement as a downloadable file asset tied to the contract

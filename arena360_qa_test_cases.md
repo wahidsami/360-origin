@@ -158,8 +158,9 @@ This document defines the baseline QA suite for Arena360. It is written against 
 |---|---|---|---|---|---|
 | FIN-01 | Finance dashboard | FINANCE/OPS/PM/SUPER_ADMIN | Finance data exists | Open finance dashboard | Revenue, contracts, invoices, and balances load correctly. |
 | FIN-02 | Contract CRUD | FINANCE/OPS | Client/project exists | Create, edit, and delete a contract | Contract records persist and produce audit entries. |
-| FIN-02A | Agreement builder | PM/OPS/SUPER_ADMIN | Project exists | Fill the agreement builder fields and save a contract | A Saudi-law-aware agreement PDF is generated automatically and linked to the contract. |
-| FIN-02B | Agreement download | PM/OPS/FINANCE | Contract has generated PDF | Open the contract and download the agreement | The PDF opens or downloads successfully and matches the saved contract details. |
+| FIN-02A | Agreement AI assist | PM/OPS/SUPER_ADMIN | Project exists and AI is configured | Type rough text into the long-form agreement fields and click Enhance with AI | The service, payment, term, and special terms fields are rewritten into polished draft language. |
+| FIN-02B | Agreement builder | PM/OPS/SUPER_ADMIN | Project exists | Fill the agreement builder fields and save a contract | A Saudi-law-aware agreement PDF is generated automatically and linked to the contract. |
+| FIN-02C | Agreement download | PM/OPS/FINANCE | Contract has generated PDF | Open the contract and download the agreement | The PDF opens or downloads successfully and matches the saved contract details. |
 | FIN-03 | Invoice CRUD | FINANCE/OPS | Contract/project exists | Create and update an invoice | Invoice status and amounts are correct. |
 | FIN-04 | Invoice payment | FINANCE/OPS | Invoice exists | Create payment intent or mark paid | Payment status updates and finance totals refresh. |
 | FIN-05 | Outstanding balances | FINANCE/OPS/PM | Client has unpaid invoices | Open client finance summary | Outstanding balances are accurate. |

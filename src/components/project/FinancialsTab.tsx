@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Contract, Invoice, Permission, isInternalRole } from '@/types';
 import { Button, GlassCard, Badge, Input, Modal, Select } from '../ui/UIComponents';
-import { Plus, FileText, DollarSign, Calendar, Download, Trash2, Edit, Send, Check, X, CreditCard } from 'lucide-react';
+import { Plus, FileText, DollarSign, Calendar, Download, Trash2, Edit, Send, Check, X, CreditCard, Sparkles, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAppDialog } from '../../contexts/DialogContext';
 import { useTranslation } from 'react-i18next';
@@ -98,6 +98,8 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
     const [payInvoice, setPayInvoice] = useState<Invoice | null>(null);
     const [payClientSecret, setPayClientSecret] = useState<string | null>(null);
     const [payLoading, setPayLoading] = useState(false);
+    const [agreementEnhancing, setAgreementEnhancing] = useState(false);
+    const contractFormRef = useRef<HTMLFormElement | null>(null);
 
     // Stats
     const totalOutstanding = invoices.filter(i => {
@@ -108,6 +110,83 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
     const totalPaid = invoices.filter(i => i.status?.toLowerCase() === 'paid').reduce((acc, i) => acc + i.amount, 0);
     const totalOverdue = invoices.filter(i => i.status?.toLowerCase() === 'overdue').reduce((acc, i) => acc + i.amount, 0);
     const normalizeContractStatus = (value?: string | null) => String(value || 'active').toLowerCase();
+
+    const getFormField = (form: HTMLFormElement, name: string) => {
+        const field = form.elements.namedItem(name);
+        if (!field || !('value' in field)) return '';
+        return String(field.value || '');
+    };
+
+    const setFormField = (form: HTMLFormElement, name: string, value: string) => {
+        const field = form.elements.namedItem(name);
+        if (field && 'value' in field) {
+            field.value = value;
+        }
+    };
+
+    const parseJsonReply = (raw: string) => {
+        const trimmed = String(raw || '').trim();
+        const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+        const candidate = fenced?.[1]?.trim() || trimmed;
+        try {
+            return JSON.parse(candidate);
+        } catch {
+            const firstBrace = candidate.indexOf('{');
+            const lastBrace = candidate.lastIndexOf('}');
+            if (firstBrace >= 0 && lastBrace > firstBrace) {
+                return JSON.parse(candidate.slice(firstBrace, lastBrace + 1));
+            }
+            throw new Error('AI returned an invalid format.');
+        }
+    };
+
+    const handleEnhanceAgreement = async () => {
+        if (!projectId || !contractFormRef.current || agreementEnhancing) return;
+        const form = contractFormRef.current;
+        const currentDraft = {
+            serviceDescription: getFormField(form, 'serviceDescription'),
+            paymentTerms: getFormField(form, 'paymentTerms'),
+            termDescription: getFormField(form, 'termDescription'),
+            specialTerms: getFormField(form, 'specialTerms'),
+        };
+
+        setAgreementEnhancing(true);
+        try {
+            const res = await api.ai.chat(
+                [
+                    {
+                        role: 'system',
+                        content: [
+                            'You are a professional contract drafting assistant.',
+                            'Rewrite the provided agreement sections in clear, polished, business-appropriate language.',
+                            'Preserve the user’s meaning and do not add new legal advice, clauses, or obligations.',
+                            'If a field is empty, create a concise draft that fits a Saudi business-services agreement.',
+                            'Return valid JSON only with exactly these keys: serviceDescription, paymentTerms, termDescription, specialTerms.',
+                        ].join(' '),
+                    },
+                    {
+                        role: 'user',
+                        content: JSON.stringify({
+                            projectId,
+                            currentDraft,
+                        }, null, 2),
+                    },
+                ],
+                { projectId },
+            );
+
+            const parsed = parseJsonReply(res.reply);
+            setFormField(form, 'serviceDescription', typeof parsed.serviceDescription === 'string' ? parsed.serviceDescription : currentDraft.serviceDescription);
+            setFormField(form, 'paymentTerms', typeof parsed.paymentTerms === 'string' ? parsed.paymentTerms : currentDraft.paymentTerms);
+            setFormField(form, 'termDescription', typeof parsed.termDescription === 'string' ? parsed.termDescription : currentDraft.termDescription);
+            setFormField(form, 'specialTerms', typeof parsed.specialTerms === 'string' ? parsed.specialTerms : currentDraft.specialTerms);
+            toast.success('Agreement draft enhanced.');
+        } catch (error: any) {
+            toast.error(error?.message || 'AI enhancement failed');
+        } finally {
+            setAgreementEnhancing(false);
+        }
+    };
 
     // Fetch data wrapper
     const refreshData = async () => {
@@ -584,7 +663,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
 
             {/* Contract Modal */}
             <Modal isOpen={isContractModalOpen} onClose={() => setIsContractModalOpen(false)} title={editingItem ? t('edit_contract') : t('new_contract')}>
-                <form onSubmit={handleCreateContract} className="space-y-4">
+                <form ref={contractFormRef} onSubmit={handleCreateContract} className="space-y-4">
                     <Input name="title" label={t('contract_title')} defaultValue={editingItem?.title} required />
                     <div className="grid grid-cols-2 gap-4">
                         <Input name="amount" type="number" label={t('amount_sar')} defaultValue={editingItem?.amount} required />
@@ -599,11 +678,23 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({ contract: initialC
                         <Input name="endDate" type="date" label={t('end_date')} defaultValue={editingItem?.endDate ? new Date(editingItem.endDate).toISOString().split('T')[0] : ''} />
                     </div>
                     <div className="rounded-xl border border-slate-700/60 bg-slate-900/40 p-4 space-y-4">
-                        <div>
-                            <p className="text-sm font-semibold text-white">Agreement Builder</p>
-                            <p className="text-xs text-slate-400 mt-1">
-                                Fill these fields to generate a Saudi-law agreement draft with automated PDF output.
-                            </p>
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <p className="text-sm font-semibold text-white">Agreement Builder</p>
+                                <p className="text-xs text-slate-400 mt-1">
+                                    Fill these fields to generate a Saudi-law agreement draft with automated PDF output.
+                                </p>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleEnhanceAgreement}
+                                disabled={agreementEnhancing}
+                            >
+                                {agreementEnhancing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                                Enhance with AI
+                            </Button>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <Select name="agreementLocale" label="Agreement Language" defaultValue={agreementDefaults.agreementLocale || 'ar'}>
