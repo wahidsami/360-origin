@@ -40,16 +40,16 @@ Remove the remaining feature mismatches between the docs, UI, and backend.
 - [x] Make report workspace, admin, and API flows agree on the same report types.
 
 ### 1.2 Workspace And Tabs
-- [ ] Audit all project tabs against role visibility and workspace templates.
-- [ ] Remove any remaining placeholder or legacy tab behavior.
-- [ ] Verify client, internal, finance, and admin roles see the right tabs.
-- [ ] Ensure read-only versus interactive states are correct everywhere.
+- [x] Audit all project tabs against role visibility and workspace templates.
+- [x] Remove any remaining placeholder or legacy tab behavior.
+- [x] Verify client, internal, finance, and admin roles see the right tabs.
+- [x] Ensure read-only versus interactive states are correct everywhere.
 
 ### 1.3 Analytics And Admin
-- [ ] Audit analytics widgets against actual backend data sources.
-- [ ] Verify admin screens are editable where the docs claim they are.
-- [ ] Remove any stale “partial” surfaces in roles, users, templates, and settings.
-- [ ] Confirm finance and client-facing summary screens match the documented scope.
+- [x] Audit analytics widgets against actual backend data sources.
+- [x] Verify admin screens are editable where the docs claim they are.
+- [x] Remove any stale “partial” surfaces in roles, users, templates, and settings.
+- [x] Confirm finance and client-facing summary screens match the documented scope.
 
 ### Done Criteria
 - The live product matches the documented feature inventory.
@@ -64,10 +64,10 @@ Prove the system works end to end for the highest-risk journeys.
 ### Work
 - [x] Add E2E coverage for login.
 - [x] Add E2E coverage for SSO login and org-aware routing.
-- [ ] Add E2E coverage for notifications and linked navigation.
-- [ ] Add E2E coverage for webhooks and delivery events.
-- [ ] Add E2E coverage for approvals across reports, invoices, and contracts.
-- [ ] Add E2E coverage for reports and exports.
+- [x] Add E2E coverage for notifications and linked navigation.
+- [x] Add E2E coverage for webhooks and delivery events.
+- [x] Add E2E coverage for approvals across reports, invoices, and contracts.
+- [x] Add E2E coverage for reports and exports.
 - [ ] Add E2E coverage for client portal flows.
 - [ ] Add E2E coverage for finance dashboard and finance actions.
 - [x] Add permission-matrix tests for every role.

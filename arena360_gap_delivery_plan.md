@@ -36,17 +36,17 @@ For the step-by-step completion path, see [arena360_100_percent_completion_plan.
 
 - [x] Restore generic report generation and a full non-accessibility template workflow if that remains in scope.
 - [ ] Finish the remaining finance surfaces that are still hidden or partial.
-- [ ] Align workspace visibility and tab behavior with the documented role model.
-- [ ] Tighten analytics and admin screens to match documented capabilities.
+- [x] Align workspace visibility and tab behavior with the documented role model.
+- [x] Tighten analytics and admin screens to match documented capabilities.
 
 ## Phase 4 - Verification
 
 - [x] Add end-to-end tests for login.
 - [x] Add end-to-end tests for SSO login and org-aware routing.
-- [ ] Add end-to-end tests for notifications and linked navigation.
-- [ ] Add end-to-end tests for webhooks and delivery events.
-- [ ] Add end-to-end tests for approvals across reports, invoices, and contracts.
-- [ ] Add end-to-end tests for reports and exports.
+- [x] Add end-to-end tests for notifications and linked navigation.
+- [x] Add end-to-end tests for webhooks and delivery events.
+- [x] Add end-to-end tests for approvals across reports, invoices, and contracts.
+- [x] Add end-to-end tests for reports and exports.
 - [x] Audit permissions so each role sees exactly what it should.
 - [ ] Update the documentation after each phase so the docs stay aligned with reality.
 - [ ] Rebuild and redeploy after each phase to catch regressions early.
