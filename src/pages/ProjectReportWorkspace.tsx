@@ -658,6 +658,11 @@ export const ProjectReportWorkspace: React.FC = () => {
       normalized.sort((a, b) => (a.stepOrder ?? 1) - (b.stepOrder ?? 1));
       setApprovalSteps(normalized);
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error ?? '');
+      if (message.includes('Report not found')) {
+        setApprovalSteps([]);
+        return;
+      }
       console.error('Failed to load report approvals', error);
       setApprovalSteps([]);
     }
