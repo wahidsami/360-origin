@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
+import toast from 'react-hot-toast';
 import {
   LayoutDashboard, Users, Briefcase, FileText, ShieldCheck,
   Settings, Bell, Search, LogOut, Menu, X, ChevronRight, Globe, ClipboardList, Calendar, History, DollarSign,
@@ -133,8 +134,11 @@ export const Layout: React.FC = () => {
         transports: ['websocket', 'polling'],
       });
       socketRef.current = socket;
-      socket.on('notification', () => {
+      socket.on('notification', (payload?: { title?: string; body?: string; entityType?: string }) => {
         setNotificationUnreadCount((c) => c + 1);
+        if (payload?.entityType === 'email') {
+          toast.error(payload.body || payload.title || 'Email delivery issue');
+        }
       });
       socket.on('connect_error', () => {
         // Fallback to polling only; count is already loaded

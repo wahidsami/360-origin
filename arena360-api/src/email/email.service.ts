@@ -9,6 +9,7 @@ export class EmailService {
     private resend: Resend | null = null;
     private readonly logger = new Logger(EmailService.name);
     private readonly fromEmail: string;
+    private readonly frontendUrl: string | null;
 
     constructor(
         private configService: ConfigService,
@@ -20,6 +21,8 @@ export class EmailService {
             this.configService.get<string>('EMAIL_FROM') ||
             this.configService.get<string>('RESEND_FROM_EMAIL') ||
             'onboarding@resend.dev';
+        const frontendUrl = this.configService.get<string>('FRONTEND_URL')?.trim();
+        this.frontendUrl = frontendUrl ? frontendUrl.replace(/\/+$/, '') : null;
 
         if (apiKey && apiKey.startsWith('re_')) {
             this.resend = new Resend(apiKey);
@@ -48,6 +51,15 @@ export class EmailService {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
+    }
+
+    private normalizeLinkUrl(linkUrl?: string): string | undefined {
+        if (!linkUrl) return undefined;
+        const trimmed = linkUrl.trim();
+        if (!trimmed) return undefined;
+        if (/^https?:\/\//i.test(trimmed)) return trimmed;
+        if (!this.frontendUrl) return trimmed;
+        return `${this.frontendUrl}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
     }
 
     private buildEmailShell(title: string, eyebrow: string, body: string): string {
@@ -93,9 +105,10 @@ export class EmailService {
     }
 
     private buildNotificationEmail(title: string, body?: string, linkUrl?: string, orgName: string = 'Arena360'): { html: string; text: string } {
+        const resolvedLink = this.normalizeLinkUrl(linkUrl);
         const safeTitle = this.escapeHtml(title);
         const safeBody = this.escapeHtml(body || 'You have a new update in Arena360.');
-        const safeLink = linkUrl ? this.escapeHtml(linkUrl) : '';
+        const safeLink = resolvedLink ? this.escapeHtml(resolvedLink) : '';
         const html = this.buildEmailShell(
             `${safeTitle} | ${orgName}`,
             'Arena360 Notification',
@@ -105,7 +118,7 @@ export class EmailService {
                     <h1 style="margin:0 0 12px; font-size:34px; line-height:1.15; color:#0f172a;">${safeTitle}</h1>
                     <p style="margin:0; font-size:16px; line-height:1.7; color:#475569;">${safeBody}</p>
                 </div>
-                ${linkUrl ? `
+                ${resolvedLink ? `
                     <div style="margin-bottom:24px;">
                         <a href="${safeLink}" style="display:inline-block; background:linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%); color:#ffffff; text-decoration:none; font-size:16px; font-weight:700; padding:15px 26px; border-radius:14px;">
                             Open in Arena360
@@ -122,8 +135,8 @@ export class EmailService {
             `${title}`,
             '',
             body || 'You have a new update in Arena360.',
-            linkUrl ? '' : null,
-            linkUrl || null,
+            resolvedLink ? '' : null,
+            resolvedLink || null,
         ].filter(Boolean).join('\n');
 
         return { html, text };
@@ -211,7 +224,7 @@ export class EmailService {
                     this.logger.error(`Failed to send invite email to ${to}: ${response.error.message}`);
                     throw new BadGatewayException(response.error.message || 'Invite email send failed');
                 }
-                this.logger.log(`Invite email sent to ${to}`);
+                this.logger.log(`Invite email sent to ${to}${response.data?.id ? ` (id: ${response.data.id})` : ''}`);
             } catch (error) {
                 this.logger.error(`Failed to send invite email to ${to}:`, error);
                 await this.alertDeliveryFailure(
@@ -278,7 +291,8 @@ export class EmailService {
 
     async sendNotificationEmail(to: string, title: string, body?: string, linkUrl?: string, orgName: string = 'Arena360'): Promise<void> {
         const subject = `${orgName}: ${title}`;
-        const { html, text } = this.buildNotificationEmail(title, body, linkUrl, orgName);
+        const resolvedLink = this.normalizeLinkUrl(linkUrl);
+        const { html, text } = this.buildNotificationEmail(title, body, resolvedLink, orgName);
 
         if (this.resend) {
             try {
@@ -293,7 +307,7 @@ export class EmailService {
                     this.logger.error(`Failed to send notification email to ${to}: ${response.error.message}`);
                     throw new BadGatewayException(response.error.message || 'Notification email send failed');
                 }
-                this.logger.log(`Notification email sent to ${to}`);
+                this.logger.log(`Notification email sent to ${to}${response.data?.id ? ` (id: ${response.data.id})` : ''}`);
             } catch (error) {
                 this.logger.error(`Failed to send notification email to ${to}:`, error);
                 await this.alertDeliveryFailure(
@@ -310,7 +324,7 @@ export class EmailService {
             this.logger.log(`SUBJECT: ${subject}`);
             this.logger.log(`TITLE: ${title}`);
             this.logger.log(`BODY: ${body || ''}`);
-            this.logger.log(`LINK: ${linkUrl || ''}`);
+            this.logger.log(`LINK: ${resolvedLink || ''}`);
             this.logger.log('=========================================================');
         }
     }

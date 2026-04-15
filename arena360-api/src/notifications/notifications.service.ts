@@ -203,4 +203,55 @@ export class NotificationsService {
     });
     return this.getPreferences(userId);
   }
+
+  async createInAppSystemNotification(data: {
+    orgId: string;
+    userId: string;
+    type?: NotificationType;
+    title: string;
+    body?: string;
+    linkUrl?: string;
+    entityId?: string;
+    entityType?: string;
+  }) {
+    if (data.entityId && data.entityType) {
+      const existing = await this.prisma.notification.findFirst({
+        where: {
+          userId: data.userId,
+          entityId: data.entityId,
+          entityType: data.entityType,
+        },
+        select: { id: true, createdAt: true },
+      });
+      if (existing) {
+        return existing;
+      }
+    }
+
+    const notification = await this.prisma.notification.create({
+      data: {
+        orgId: data.orgId,
+        userId: data.userId,
+        type: data.type || 'MENTION',
+        title: data.title,
+        body: data.body,
+        linkUrl: data.linkUrl,
+        entityId: data.entityId,
+        entityType: data.entityType,
+      },
+    });
+
+    this.gateway.emitToUser(data.userId, {
+      id: notification.id,
+      title: notification.title,
+      body: notification.body || undefined,
+      linkUrl: notification.linkUrl || undefined,
+      type: notification.type,
+      entityId: notification.entityId || undefined,
+      entityType: notification.entityType || undefined,
+      createdAt: notification.createdAt.toISOString(),
+    });
+
+    return notification;
+  }
 }

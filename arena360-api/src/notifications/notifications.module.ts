@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsGateway } from './notifications.gateway';
+import { ResendWebhooksController } from './resend-webhooks.controller';
 import { CommonModule } from '../common/common.module';
 import { IntegrationsModule } from '../integrations/integrations.module';
 
@@ -19,7 +20,7 @@ import { IntegrationsModule } from '../integrations/integrations.module';
       inject: [ConfigService],
     }),
   ],
-  controllers: [NotificationsController],
+  controllers: [NotificationsController, ResendWebhooksController],
   providers: [NotificationsService, NotificationsGateway],
   exports: [NotificationsService, NotificationsGateway],
 })

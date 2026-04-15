@@ -65,6 +65,7 @@ import { OperationalExceptionFilter } from './common/filters/operational-excepti
         S3_REGION: Joi.string().default('us-east-1'),
         OPENAI_API_KEY: Joi.string().optional(),
         OPENAI_MODEL: Joi.string().default('gpt-4o'),
+        RESEND_WEBHOOK_SECRET: Joi.string().optional(),
         FRONTEND_URL: Joi.string().optional(),
         API_URL: Joi.string().optional(),
         STRIPE_SECRET_KEY: Joi.string().optional(),
