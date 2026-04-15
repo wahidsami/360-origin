@@ -63,14 +63,14 @@ export const ProjectEdit: React.FC = () => {
                 setClients(cList);
             } catch (err) {
                 console.error("Failed to load project data", err);
-                setError("Failed to load project data.");
+                setError(t('failed_to_load_project_data'));
             } finally {
                 setFetching(false);
             }
         };
 
         if (projectId) load();
-    }, [projectId]);
+    }, [projectId, t]);
 
     useEffect(() => {
         const loadWorkspaceOptions = async () => {
@@ -104,7 +104,7 @@ export const ProjectEdit: React.FC = () => {
                 });
             } catch (err) {
                 console.error(err);
-                setWorkspaceError('Unable to load workspace templates for this client. You can still keep the current project workspace.');
+                setWorkspaceError(t('edit_project_workspace_error'));
                 const options = buildWorkspaceTemplateOptions({
                     clientId: formData.clientId,
                     currentConfig: project?.workspaceConfig || null,
@@ -119,7 +119,7 @@ export const ProjectEdit: React.FC = () => {
         if (!fetching) {
             loadWorkspaceOptions();
         }
-    }, [fetching, formData.clientId, project?.workspaceConfig]);
+    }, [fetching, formData.clientId, project?.workspaceConfig, t]);
 
     const selectedWorkspaceOption = useMemo(
         () => workspaceOptions.find((option) => option.id === selectedWorkspaceOptionId) || null,
@@ -144,13 +144,13 @@ export const ProjectEdit: React.FC = () => {
             navigate(`/app/projects/${projectId}`);
         } catch (err: any) {
             console.error(err);
-            setError(err.message || 'Failed to update project. Please check your inputs.');
+            setError(err.message || t('failed_to_update_project'));
         } finally {
             setLoading(false);
         }
     };
 
-    if (fetching) return <div className="p-10 text-center text-slate-500">Retrieving mission configuration...</div>;
+    if (fetching) return <div className="p-10 text-center text-slate-500">{t('retrieving_mission_data')}</div>;
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">
@@ -158,7 +158,7 @@ export const ProjectEdit: React.FC = () => {
                 <Button variant="ghost" onClick={handleGoBack}><ArrowLeft className="w-5 h-5" /></Button>
                 <div>
                     <h1 className="text-3xl font-bold font-display text-white">{t('edit_project')}</h1>
-                    <p className="text-slate-400">Update mission parameters and protocols.</p>
+                    <p className="text-slate-400">{t('edit_project_subtitle')}</p>
                 </div>
             </div>
 
@@ -167,17 +167,17 @@ export const ProjectEdit: React.FC = () => {
                     <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-4 flex items-start gap-3">
                         <div className="text-rose-400 mt-0.5"><Save className="w-5 h-5" /></div>
                         <div>
-                            <h3 className="text-rose-200 font-semibold text-sm">Update Failed</h3>
+                            <h3 className="text-rose-200 font-semibold text-sm">{t('failed_to_update_project_title')}</h3>
                             <p className="text-rose-300/80 text-xs">{error}</p>
                         </div>
                     </div>
                 )}
 
-                <GlassCard title="Mission Parameters">
+                <GlassCard title={t('edit_project_section_title')}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="md:col-span-2">
                             <Label>{t('project_name')}</Label>
-                            <Input required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                            <Input required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder={t('edit_project_name_placeholder')} />
                         </div>
                         <div>
                             <Label>{t('client_name')}</Label>
@@ -186,7 +186,7 @@ export const ProjectEdit: React.FC = () => {
                                 value={formData.clientId}
                                 onChange={e => setFormData({ ...formData, clientId: e.target.value })}
                             >
-                                <option value="">-- Select Client --</option>
+                                <option value="">{t('select_client')}</option>
                                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </Select>
                         </div>
@@ -204,9 +204,9 @@ export const ProjectEdit: React.FC = () => {
                         <div>
                             <Label>{t('health')}</Label>
                             <Select value={formData.health} onChange={e => setFormData({ ...formData, health: e.target.value as any })}>
-                                <option value="good">Good</option>
-                                <option value="at-risk">At Risk</option>
-                                <option value="critical">Critical</option>
+                                <option value="good">{t('good')}</option>
+                                <option value="at-risk">{t('at_risk')}</option>
+                                <option value="critical">{t('critical')}</option>
                             </Select>
                         </div>
                         <div>
@@ -227,14 +227,14 @@ export const ProjectEdit: React.FC = () => {
                         </div>
                         <div className="md:col-span-2">
                             <Label>{t('description')}</Label>
-                            <TextArea rows={4} value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                            <TextArea rows={4} value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder={t('edit_project_description_placeholder')} />
                         </div>
                     </div>
                 </GlassCard>
 
                 <WorkspaceTemplateSelector
-                    title="Workspace Template"
-                    description="Review or change the workspace template this project uses. Saving here updates the project snapshot without changing the client’s default assignment."
+                    title={t('edit_project_workspace_title')}
+                    description={t('edit_project_workspace_description')}
                     options={workspaceOptions}
                     selectedOptionId={selectedWorkspaceOptionId}
                     onChange={setSelectedWorkspaceOptionId}
@@ -247,7 +247,7 @@ export const ProjectEdit: React.FC = () => {
                     <Button type="button" variant="ghost" onClick={handleGoBack}>{t('cancel')}</Button>
                     <Button type="submit" disabled={loading} className="w-40">
                         <Save className="w-4 h-4 mr-2" />
-                        {loading ? 'Updating...' : t('update_project')}
+                        {loading ? t('updating_dots') : t('update_project')}
                     </Button>
                 </div>
             </form>
