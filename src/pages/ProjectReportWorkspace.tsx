@@ -526,6 +526,8 @@ export const ProjectReportWorkspace: React.FC = () => {
   );
   const subcategoryOptions = isAccessibilityReport && entryDraft.category ? taxonomy.subcategories[entryDraft.category] || [] : [];
   const reportOutputLocale: ProjectReportOutputLocale = report?.outputLocale || (isAccessibilityReport ? getAccessibilityOutputLocale(report?.templateVersion) : 'en');
+  const activeReportId = report?.id || reportId || '';
+  const activeProjectId = report?.projectId || projectId || '';
   const entryNeedsSeverity = entryDraft.auditOutcome === 'FAIL' || entryDraft.auditOutcome === 'PARTIAL';
   const entryNeedsRecommendation = entryNeedsSeverity;
   const entryNeedsSubcategory = isAccessibilityReport && entryNeedsSeverity;
@@ -640,9 +642,9 @@ export const ProjectReportWorkspace: React.FC = () => {
   const summaryRecommendations = toDisplayText((report?.summaryJson as any)?.recommendationsSummary);
 
   const loadApprovals = React.useCallback(async () => {
-    if (!reportId) return;
+    if (!activeReportId) return;
     try {
-      const list = await api.approvals.getByEntity('REPORT', reportId);
+      const list = await api.approvals.getByEntity('REPORT', activeReportId);
       const normalized = (list || []).map((approval: any) => ({
         id: approval.id,
         status: approval.status,
@@ -666,7 +668,7 @@ export const ProjectReportWorkspace: React.FC = () => {
       console.error('Failed to load report approvals', error);
       setApprovalSteps([]);
     }
-  }, [reportId]);
+  }, [activeReportId]);
 
   const loadData = React.useCallback(async () => {
     if (!reportId) return;
@@ -902,9 +904,9 @@ export const ProjectReportWorkspace: React.FC = () => {
   }, [navigate, projectId]);
 
   const handleDownloadLatestExport = async () => {
-    if (!reportId) return;
+    if (!activeReportId) return;
     try {
-      const latest = await api.reportBuilderProjects.getLatestExport(reportId);
+      const latest = await api.reportBuilderProjects.getLatestExport(activeReportId);
       window.open(latest.url, '_blank', 'noopener,noreferrer');
     } catch (error: any) {
       console.error(error);
@@ -913,9 +915,9 @@ export const ProjectReportWorkspace: React.FC = () => {
   };
 
   const handleStatusChange = async (nextStatus: ProjectReport['status']) => {
-    if (!reportId) return;
+    if (!activeReportId) return;
     try {
-      const updated = await api.reportBuilderProjects.updateProjectReport(reportId, { status: nextStatus });
+      const updated = await api.reportBuilderProjects.updateProjectReport(activeReportId, { status: nextStatus });
       setReport(updated);
       toast.success(copy.statusUpdateSuccess);
     } catch (error) {
@@ -925,11 +927,11 @@ export const ProjectReportWorkspace: React.FC = () => {
   };
 
   const handleRequestReportApproval = async () => {
-    if (!reportId || !projectId || !report) return;
+    if (!activeReportId || !activeProjectId || !report) return;
     try {
-      await api.approvals.create({ entityType: 'REPORT', entityId: reportId, projectId });
+      await api.approvals.create({ entityType: 'REPORT', entityId: activeReportId, projectId: activeProjectId });
       const updated = report.status === 'DRAFT'
-        ? await api.reportBuilderProjects.updateProjectReport(reportId, { status: 'IN_REVIEW' })
+        ? await api.reportBuilderProjects.updateProjectReport(activeReportId, { status: 'IN_REVIEW' })
         : report;
       setReport(updated);
       await loadApprovals();
@@ -941,7 +943,7 @@ export const ProjectReportWorkspace: React.FC = () => {
   };
 
   const handleReviewApproval = async () => {
-    if (!reportId || !approvalReview) return;
+    if (!activeReportId || !approvalReview) return;
     const step = approvalSteps.find((item) => item.id === approvalReview.id);
     if (!step) return;
     try {
@@ -951,7 +953,7 @@ export const ProjectReportWorkspace: React.FC = () => {
         await api.approvals.reject(step.id, approvalComment || undefined);
       }
 
-      const refreshed = await api.approvals.getByEntity('REPORT', reportId);
+      const refreshed = await api.approvals.getByEntity('REPORT', activeReportId);
       const normalized = (refreshed || []).map((approval: any) => ({
         id: approval.id,
         status: approval.status,
@@ -972,7 +974,7 @@ export const ProjectReportWorkspace: React.FC = () => {
         : normalized.length > 0 && normalized.every((item) => item.status === 'APPROVED')
           ? 'APPROVED'
           : 'IN_REVIEW';
-      const updated = await api.reportBuilderProjects.updateProjectReport(reportId, { status: nextStatus });
+      const updated = await api.reportBuilderProjects.updateProjectReport(activeReportId, { status: nextStatus });
       setReport(updated);
       setApprovalReview(null);
       setApprovalComment('');
@@ -984,9 +986,9 @@ export const ProjectReportWorkspace: React.FC = () => {
   };
 
   const handleOutputLocaleChange = async (locale: ProjectReportOutputLocale) => {
-    if (!reportId || !canEditReport || !report || report.outputLocale === locale) return;
+    if (!activeReportId || !canEditReport || !report || report.outputLocale === locale) return;
     try {
-      const updated = await api.reportBuilderProjects.updateProjectReport(reportId, { outputLocale: locale });
+      const updated = await api.reportBuilderProjects.updateProjectReport(activeReportId, { outputLocale: locale });
       setReport(updated);
       setPreviewLocale(locale);
       toast.success(isArabic ? ar('ØªÙ… ØªØ­Ø¯ÙŠØ« Ù„ØºØ© Ø§Ù„ØªÙ‚Ø±ÙŠØ±.') : 'Report language updated.');
