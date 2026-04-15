@@ -22,7 +22,7 @@ export class ClientsService {
             const file = await this.prisma.fileAsset.findUnique({
                 where: { id: logoId }
             });
-            if (file) {
+            if (file && await this.storage.objectExists(file.storageKey)) {
                 return this.storage.getSignedUrl(file.storageKey, 3600);
             }
         } catch (e) {
