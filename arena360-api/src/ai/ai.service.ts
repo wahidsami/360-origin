@@ -27,6 +27,62 @@ export class AiService {
     return this.client;
   }
 
+  private toLabel(value: unknown) {
+    return String(value || '')
+      .replace(/_/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  private buildProjectSummaryFallback(project: {
+    name: string;
+    description?: string | null;
+    status: string;
+    health: string;
+    progress: number;
+    client?: { name: string } | null;
+    tasks: Array<{ title: string; status: string }>;
+    milestones: Array<{ title: string; status: string }>;
+  }) {
+    const totalTasks = project.tasks.length;
+    const completedTasks = project.tasks.filter((task) => this.toLabel(task.status) === 'done').length;
+    const openTasks = Math.max(0, totalTasks - completedTasks);
+    const totalMilestones = project.milestones.length;
+    const completedMilestones = project.milestones.filter((milestone) => this.toLabel(milestone.status) === 'done').length;
+    const openMilestones = Math.max(0, totalMilestones - completedMilestones);
+    const clientName = project.client?.name || 'no client assigned';
+    const statusLabel = this.toLabel(project.status) || 'planning';
+    const healthLabel = this.toLabel(project.health) || 'good';
+
+    const lines = [
+      `Project ${project.name} is currently ${statusLabel} with ${project.progress}% progress for ${clientName}.`,
+    ];
+
+    if (project.description) {
+      lines.push(`Scope note: ${project.description}`);
+    }
+
+    if (totalTasks === 0 && totalMilestones === 0) {
+      lines.push('No tasks or milestones have been recorded yet, so this is a lightweight summary.');
+    } else {
+      lines.push(
+        `Delivery snapshot: ${completedTasks} of ${totalTasks} tasks completed and ${completedMilestones} of ${totalMilestones} milestones completed.`,
+      );
+      lines.push(
+        `Open work remains on ${openTasks} task${openTasks === 1 ? '' : 's'} and ${openMilestones} milestone${openMilestones === 1 ? '' : 's'}.`,
+      );
+    }
+
+    lines.push(
+      healthLabel === 'critical' || healthLabel === 'at risk'
+        ? 'The project is showing elevated risk and should be reviewed for blockers, scope drift, or overdue work.'
+        : 'The project appears stable, with the main focus on keeping delivery moving and closing open items.',
+    );
+
+    return lines.join(' ');
+  }
+
   private extractJsonObject(raw: string) {
     const trimmed = String(raw || '').trim();
     if (!trimmed) {
@@ -93,10 +149,21 @@ export class AiService {
       tasks: project.tasks.map((t) => ({ title: t.title, status: t.status })),
       milestones: project.milestones.map((m) => ({ title: m.title, status: m.status })),
     }, null, 2);
-    return this.chat(
-      'You are a project analyst. Summarize the project in 2–4 short paragraphs: objectives, current status, and key risks or next steps.',
-      `Project data:\n${text}`,
-    );
+
+    if (!this.client) {
+      this.logger.warn('AI is not configured; using fallback project summary.');
+      return this.buildProjectSummaryFallback(project);
+    }
+
+    try {
+      return await this.chat(
+        'You are a project analyst. Summarize the project in 2–4 short paragraphs: objectives, current status, and key risks or next steps.',
+        `Project data:\n${text}`,
+      );
+    } catch (error: any) {
+      this.logger.warn(`Falling back to local project summary after AI failure: ${error?.message || error}`);
+      return this.buildProjectSummaryFallback(project);
+    }
   }
 
   async suggestTasks(projectId: string, orgId: string): Promise<string> {
