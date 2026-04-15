@@ -90,4 +90,14 @@ describe('ApprovalsService', () => {
       }),
     );
   });
+
+  it('returns an empty approval list when the report no longer exists', async () => {
+    prisma.projectReport.findFirst.mockResolvedValue(null);
+    prisma.report.findFirst.mockResolvedValue(null);
+
+    const result = await service.findByEntity('REPORT', 'missing-report', user);
+
+    expect(result).toEqual([]);
+    expect(prisma.approvalRequest.findMany).not.toHaveBeenCalled();
+  });
 });

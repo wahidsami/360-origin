@@ -167,7 +167,12 @@ export class ApprovalsService {
     entityId: string,
     user: UserWithRoles,
   ) {
-    await this.ensureEntityExists(entityType, entityId, undefined, user);
+    try {
+      await this.ensureEntityExists(entityType, entityId, undefined, user);
+    } catch (error) {
+      if (error instanceof NotFoundException) return [];
+      throw error;
+    }
     const list = await this.prisma.approvalRequest.findMany({
       where: { entityType, entityId, orgId: user.orgId },
       orderBy: { stepOrder: 'asc' },
@@ -185,7 +190,12 @@ export class ApprovalsService {
     entityId: string,
     user: UserWithRoles,
   ) {
-    await this.ensureEntityExists(entityType, entityId, undefined, user);
+    try {
+      await this.ensureEntityExists(entityType, entityId, undefined, user);
+    } catch (error) {
+      if (error instanceof NotFoundException) return null;
+      throw error;
+    }
     const latest = await this.prisma.approvalRequest.findFirst({
       where: { entityType, entityId, orgId: user.orgId },
       orderBy: { createdAt: 'desc' },
