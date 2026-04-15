@@ -33,7 +33,7 @@ export class ApprovalsService {
     user: UserWithRoles,
   ): Promise<{ orgId: string; projectId: string | null }> {
     if (entityType === 'REPORT') {
-      const report = await this.prisma.report.findFirst({
+      const projectReport = await this.prisma.projectReport.findFirst({
         where: {
           id: entityId,
           orgId: user.orgId,
@@ -42,10 +42,25 @@ export class ApprovalsService {
         },
         select: { orgId: true, projectId: true },
       });
-      if (!report) throw new NotFoundException('Report not found');
-      if (projectId && report.projectId !== projectId) throw new BadRequestException('Report does not belong to project');
-      await this.ensureProjectAccess(report.projectId!, user);
-      return { orgId: report.orgId, projectId: report.projectId };
+      if (projectReport) {
+        if (projectId && projectReport.projectId !== projectId) throw new BadRequestException('Report does not belong to project');
+        await this.ensureProjectAccess(projectReport.projectId!, user);
+        return { orgId: projectReport.orgId, projectId: projectReport.projectId };
+      }
+
+      const legacyReport = await this.prisma.report.findFirst({
+        where: {
+          id: entityId,
+          orgId: user.orgId,
+          deletedAt: null,
+          ...(projectId && { projectId }),
+        },
+        select: { orgId: true, projectId: true },
+      });
+      if (!legacyReport) throw new NotFoundException('Report not found');
+      if (projectId && legacyReport.projectId !== projectId) throw new BadRequestException('Report does not belong to project');
+      await this.ensureProjectAccess(legacyReport.projectId!, user);
+      return { orgId: legacyReport.orgId, projectId: legacyReport.projectId };
     }
     if (entityType === 'INVOICE') {
       const invoice = await this.prisma.invoice.findFirst({
