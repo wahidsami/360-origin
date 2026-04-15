@@ -14,8 +14,33 @@ export class WikiService {
   private slugify(s: string): string {
     return s
       .toLowerCase()
+      .trim()
       .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-_]/g, '');
+      .replace(/[^a-z0-9-_]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+
+  private async ensureUniqueSlug(orgId: string, slug: string, excludePageId?: string) {
+    const baseSlug = this.slugify(slug) || 'page';
+    let candidate = baseSlug;
+    let index = 2;
+
+    while (true) {
+      const existing = await this.prisma.wikiPage.findFirst({
+        where: {
+          orgId,
+          slug: candidate,
+          deletedAt: null,
+          ...(excludePageId ? { id: { not: excludePageId } } : {}),
+        },
+        select: { id: true },
+      });
+
+      if (!existing) return candidate;
+      candidate = `${baseSlug}-${index}`;
+      index += 1;
+    }
   }
 
   async listPages(orgId: string, user: UserWithRoles) {
@@ -47,11 +72,7 @@ export class WikiService {
 
   async create(orgId: string, user: UserWithRoles, dto: CreateWikiPageDto) {
     await this.ensureOrg(orgId, user);
-    const slug = this.slugify(dto.slug) || this.slugify(dto.title) || 'page';
-    const existing = await this.prisma.wikiPage.findFirst({
-      where: { orgId, slug, deletedAt: null },
-    });
-    if (existing) throw new ForbiddenException('A page with this slug already exists');
+    const slug = await this.ensureUniqueSlug(orgId, dto.slug || dto.title || 'page');
     const page = await this.prisma.wikiPage.create({
       data: {
         orgId,
@@ -73,13 +94,7 @@ export class WikiService {
       where: { id, orgId, deletedAt: null },
     });
     if (!page) throw new NotFoundException('Wiki page not found');
-    const slug = dto.slug != null ? this.slugify(dto.slug) : undefined;
-    if (slug !== undefined && slug !== page.slug) {
-      const existing = await this.prisma.wikiPage.findFirst({
-        where: { orgId, slug, deletedAt: null, id: { not: id } },
-      });
-      if (existing) throw new ForbiddenException('A page with this slug already exists');
-    }
+    const slug = dto.slug != null ? await this.ensureUniqueSlug(orgId, dto.slug, id) : undefined;
     const updated = await this.prisma.wikiPage.update({
       where: { id },
       data: {
