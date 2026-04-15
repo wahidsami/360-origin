@@ -13,6 +13,7 @@ interface AuthContextType {
   logout: () => void;
   can: (permission: Permission) => boolean;
   hasPermission: (permission: string) => boolean;
+  refreshRolePermissions: () => Promise<void>;
   loading: boolean;
 }
 
@@ -24,6 +25,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [rolePermissions, setRolePermissions] = useState<Record<Role, string[]> | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const refreshRolePermissions = React.useCallback(async () => {
+    if (!user?.orgId) {
+      setRolePermissions(null);
+      return;
+    }
+
+    try {
+      const permissions = await api.org.getRolePermissions();
+      setRolePermissions(permissions);
+    } catch {
+      setRolePermissions(null);
+    }
+  }, [user?.orgId]);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -40,30 +55,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
     const loadRolePermissions = async () => {
-      if (!user?.orgId) {
-        setRolePermissions(null);
-        return;
-      }
-
-      try {
-        const permissions = await api.org.getRolePermissions();
-        if (!cancelled) {
-          setRolePermissions(permissions);
-        }
-      } catch {
-        if (!cancelled) {
-          setRolePermissions(null);
-        }
-      }
+      await refreshRolePermissions();
     };
 
     loadRolePermissions();
-    return () => {
-      cancelled = true;
+  }, [refreshRolePermissions, user?.orgId]);
+
+  useEffect(() => {
+    if (!user?.orgId) return;
+
+    const onRolePermissionsUpdated = () => {
+      refreshRolePermissions();
     };
-  }, [user?.orgId]);
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === 'org_role_permissions_updated_at') {
+        refreshRolePermissions();
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshRolePermissions();
+      }
+    };
+
+    window.addEventListener('org:role-permissions-updated', onRolePermissionsUpdated);
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('focus', onRolePermissionsUpdated);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    const interval = window.setInterval(() => {
+      refreshRolePermissions();
+    }, 60_000);
+
+    return () => {
+      window.removeEventListener('org:role-permissions-updated', onRolePermissionsUpdated);
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('focus', onRolePermissionsUpdated);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.clearInterval(interval);
+    };
+  }, [refreshRolePermissions, user?.orgId]);
 
   const login = async (email: string, password?: string) => {
     const result = await api.auth.login(email, password);
@@ -119,7 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, loginWith2fa, signupOrg, loginAsDemoUser, impersonateUser, logout, can, hasPermission, loading }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, loginWith2fa, signupOrg, loginAsDemoUser, impersonateUser, logout, can, hasPermission, refreshRolePermissions, loading }}>
       {children}
     </AuthContext.Provider>
   );

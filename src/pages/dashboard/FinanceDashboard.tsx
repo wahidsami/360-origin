@@ -2,12 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DollarSign, FileText, Briefcase } from 'lucide-react';
 import { GlassCard, KpiCard, Badge } from '@/components/ui/UIComponents';
-import { ToolsPanel } from '@/components/ToolsPanel';
 import { api } from '@/services/api';
 import { Role, Invoice } from '@/types';
 import { formatSAR } from '../../utils/currency';
 
-export const FinanceDashboard: React.FC<{ role: Role }> = ({ role }) => {
+export const FinanceDashboard: React.FC<{ role: Role }> = ({ role: _role }) => {
    const { t } = useTranslation();
    const [stats, setStats] = useState<any>(null);
    const [loading, setLoading] = useState(true);
@@ -36,8 +35,6 @@ export const FinanceDashboard: React.FC<{ role: Role }> = ({ role }) => {
           <KpiCard label={t('paid_this_month')} value={formatSAR(stats.paidThisMonth || 0)} icon={<Briefcase />} />
           <KpiCard label={t('active_contracts')} value={stats.contractsActive || 0} icon={<Briefcase />} />
        </div>
-
-       <ToolsPanel role={role} />
 
        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <GlassCard title={t('overdue_payments')}>

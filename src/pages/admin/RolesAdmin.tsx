@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Check, RotateCcw, Save, Shield } from 'lucide-react';
 import { GlassCard, Button, Badge } from '@/components/ui/UIComponents';
 import { api } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { Permission, Role, ROLE_PERMISSIONS } from '@/types';
 
 const ALL_PERMISSIONS = Object.values(Permission);
@@ -57,6 +58,7 @@ const roleLabelKey = (role: Role) => {
 
 export const RolesAdmin: React.FC = () => {
   const { t } = useTranslation();
+  const { refreshRolePermissions } = useAuth();
   const [roles, setRoles] = React.useState<Role[]>(Object.values(Role));
   const [rolePermissions, setRolePermissions] = React.useState<Record<Role, string[]>>({ ...ROLE_PERMISSIONS });
   const [draftPermissions, setDraftPermissions] = React.useState<Record<Role, string[]>>({ ...ROLE_PERMISSIONS });
@@ -133,6 +135,9 @@ export const RolesAdmin: React.FC = () => {
       const normalized = normalizeRolePermissions(updated);
       setRolePermissions(normalized);
       setDraftPermissions(normalized);
+      localStorage.setItem('org_role_permissions_updated_at', Date.now().toString());
+      window.dispatchEvent(new CustomEvent('org:role-permissions-updated'));
+      await refreshRolePermissions();
       setSaveMessage(t('role_permissions_saved_successfully'));
       setSaveMessageKind('success');
     } catch (error) {

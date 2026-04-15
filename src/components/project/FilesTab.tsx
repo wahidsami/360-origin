@@ -190,12 +190,13 @@ export const FilesTab: React.FC<FilesTabProps> = ({ files, onUpload, onDownload,
                                 </p>
                             </div>
                         </div>
-                        <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex flex-row flex-wrap gap-2 md:flex-col md:justify-start">
                             <button
                                 onClick={() => handleDownload(file)}
                                 disabled={downloadingId === file.id}
                                 className="p-2 bg-slate-700 hover:bg-slate-600 rounded text-white disabled:opacity-50"
                                 title={t('download')}
+                                aria-label={t('download')}
                             >
                                 <Download className="w-4 h-4" />
                             </button>
@@ -204,6 +205,7 @@ export const FilesTab: React.FC<FilesTabProps> = ({ files, onUpload, onDownload,
                                 disabled={downloadingId === file.id}
                                 className="p-2 bg-slate-700/50 hover:bg-slate-700 rounded text-slate-400 hover:text-white disabled:opacity-50"
                                 title={file.visibility || t('view')}
+                                aria-label={t('view')}
                             >
                                 <Eye className="w-4 h-4" />
                             </button>
@@ -213,6 +215,7 @@ export const FilesTab: React.FC<FilesTabProps> = ({ files, onUpload, onDownload,
                                     disabled={downloadingId === file.id}
                                     className="p-2 bg-rose-900/40 hover:bg-rose-700/60 rounded text-rose-400 hover:text-rose-200 disabled:opacity-50"
                                     title={t('delete')}
+                                    aria-label={t('delete')}
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>
