@@ -103,6 +103,8 @@ export class ReportBuilderService {
         where: { id: logoId },
       });
       if (!file) return '/arenalogo.png';
+      const exists = await this.storage.objectExists(file.storageKey);
+      if (!exists) return '/arenalogo.png';
       return await this.storage.getSignedUrl(file.storageKey, 3600, false);
     } catch (error) {
       this.logger.warn(`Failed to resolve client logo for report rendering: ${error?.message || error}`);

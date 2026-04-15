@@ -23,9 +23,15 @@ describe('ReportBuilderService', () => {
       findMany: jest.fn(),
       update: jest.fn(),
     },
+    fileAsset: {
+      findUnique: jest.fn(),
+    },
   } as any;
 
-  const storage = {} as any;
+  const storage = {
+    objectExists: jest.fn(),
+    getSignedUrl: jest.fn(),
+  } as any;
   const config = {
     get: jest.fn(),
   } as any;
@@ -161,5 +167,18 @@ describe('ReportBuilderService', () => {
       }),
     );
     expect(entry.issueTitle).toBe('Weak CSP header');
+  });
+
+  it('falls back to the brand logo when the stored client logo object is missing', async () => {
+    prisma.fileAsset.findUnique.mockResolvedValue({
+      storageKey: 'org/client/logo/missing.png',
+    });
+    storage.objectExists.mockResolvedValue(false);
+
+    const logoUrl = await (service as any).resolveClientLogoUrl('logo-1');
+
+    expect(storage.objectExists).toHaveBeenCalledWith('org/client/logo/missing.png');
+    expect(storage.getSignedUrl).not.toHaveBeenCalled();
+    expect(logoUrl).toBe('/arenalogo.png');
   });
 });

@@ -112,6 +112,27 @@ export class StorageService {
         }
     }
 
+    async objectExists(key: string): Promise<boolean> {
+        if (this.useLocal) {
+            const filePath = join(this.uploadDir, key);
+            return fs.existsSync(filePath);
+        }
+
+        try {
+            await this.s3!.headObject({
+                Bucket: this.bucket,
+                Key: key,
+            }).promise();
+            return true;
+        } catch (error: any) {
+            if (error?.statusCode === 404 || error?.code === 'NotFound' || error?.code === 'NoSuchKey') {
+                return false;
+            }
+            this.logger.warn(`Failed to check object existence for ${key}: ${error?.message || error}`);
+            return false;
+        }
+    }
+
     getObjectStream(key: string): Readable {
         if (this.useLocal) {
             const filePath = join(this.uploadDir, key);
