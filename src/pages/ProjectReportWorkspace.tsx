@@ -640,6 +640,7 @@ export const ProjectReportWorkspace: React.FC = () => {
   const summaryStrengths = toDisplayText((report?.summaryJson as any)?.strengthsSummary);
   const summaryCompliance = toDisplayText((report?.summaryJson as any)?.complianceSummary);
   const summaryRecommendations = toDisplayText((report?.summaryJson as any)?.recommendationsSummary);
+  const hasPendingApproval = approvalSteps.some((step) => step.status === 'PENDING');
 
   const loadApprovals = React.useCallback(async () => {
     if (!activeReportId) return;
@@ -1137,7 +1138,7 @@ export const ProjectReportWorkspace: React.FC = () => {
             </Button>
           )}
           {canEditReport && (report.status === 'DRAFT' || report.status === 'IN_REVIEW') && (
-            <Button variant="outline" onClick={handleRequestReportApproval}>
+            <Button variant="outline" onClick={handleRequestReportApproval} disabled={hasPendingApproval}>
               <Send className="mr-2 h-4 w-4" /> {isArabic ? ar('Ø·Ù„Ø¨ Ù…Ø±Ø§Ø¬Ø¹Ø©') : 'Request approval'}
             </Button>
           )}

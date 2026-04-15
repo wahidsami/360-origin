@@ -23,6 +23,57 @@ export const AIPanel: React.FC<AIPanelProps> = ({ open, onClose, context }) => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, quickResult]);
 
+  const formatQuickResult = (value: unknown) => {
+    const raw = typeof value === 'string' ? value.trim() : '';
+    if (!raw) return '';
+
+    const tryParseJson = (candidate: string) => {
+      if (!/^[\[{]/.test(candidate)) return null;
+      try {
+        return JSON.parse(candidate);
+      } catch {
+        return null;
+      }
+    };
+
+    const formatItem = (item: any) => {
+      if (!item || typeof item !== 'object') return String(item ?? '');
+      const title = typeof item.title === 'string' ? item.title.trim() : '';
+      const description = typeof item.description === 'string' ? item.description.trim() : '';
+      const action = typeof item.action === 'string' ? item.action.trim() : '';
+      const text = description || action || Object.entries(item)
+        .filter(([key]) => key !== 'title' && key !== 'description' && key !== 'action')
+        .map(([key, nested]) => `${key}: ${Array.isArray(nested) ? nested.join(', ') : String(nested ?? '')}`)
+        .filter(Boolean)
+        .join(' | ');
+      return title && text ? `• ${title}: ${text}` : title || text;
+    };
+
+    const parsed = tryParseJson(raw);
+    if (Array.isArray(parsed)) {
+      const lines = parsed.map((item) => formatItem(item)).filter(Boolean);
+      if (lines.length > 0) return lines.join('\n');
+    }
+
+    if (parsed && typeof parsed === 'object') {
+      const entries = Object.entries(parsed as Record<string, unknown>)
+        .map(([key, nested]) => {
+          if (Array.isArray(nested)) {
+            const items = nested.map((item) => formatItem(item)).filter(Boolean);
+            return items.length > 0 ? `${key}:\n${items.join('\n')}` : '';
+          }
+          if (nested && typeof nested === 'object') {
+            return `${key}:\n${formatItem(nested)}`;
+          }
+          return `${key}: ${String(nested ?? '')}`;
+        })
+        .filter(Boolean);
+      if (entries.length > 0) return entries.join('\n');
+    }
+
+    return raw;
+  };
+
   const sendChat = async () => {
     const text = input.trim();
     if (!text || loading) return;
@@ -48,7 +99,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({ open, onClose, context }) => {
     setLoading(true);
     try {
       const res = await fn();
-      const text = res.summary || res.suggestions || res.report || res.analysis || '';
+      const text = formatQuickResult(res.summary || res.suggestions || res.report || res.analysis || '');
       setQuickResult(text);
       setMessages((m) => [...m, { role: 'assistant', content: text }]);
     } catch (e) {

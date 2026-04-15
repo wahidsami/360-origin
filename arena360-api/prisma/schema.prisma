@@ -76,6 +76,7 @@ enum FileScopeType {
   CLIENT
   PROJECT
   FINDING
+  WIKI
 }
 
 enum FileCategory {
@@ -729,6 +730,8 @@ model FileAsset {
   project      Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   findingId    String?
   finding      Finding?       @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  wikiPageId   String?
+  wikiPage     WikiPage?      @relation(fields: [wikiPageId], references: [id], onDelete: Cascade)
 
   uploaderId   String
   uploader     User           @relation(fields: [uploaderId], references: [id], onDelete: Cascade, name: "FileUploader")
@@ -752,6 +755,7 @@ model FileAsset {
   @@index([clientId])
   @@index([projectId])
   @@index([scopeType])
+  @@index([wikiPageId])
 }
 
 model Finding {
@@ -1461,6 +1465,7 @@ model WikiPage {
   updatedAt   DateTime @updatedAt
   deletedAt   DateTime?
   versions    WikiPageVersion[]
+  attachments FileAsset[]
   @@unique([orgId, slug])
   @@index([orgId])
 }

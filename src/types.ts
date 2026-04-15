@@ -159,9 +159,10 @@ export interface FileAsset {
   uploadedAt: string;
   uploaderName: string;
   visibility?: 'internal' | 'public' | 'INTERNAL' | 'CLIENT' | string;
-  scopeType?: 'CLIENT' | 'PROJECT' | 'FINDING' | string;
+  scopeType?: 'CLIENT' | 'PROJECT' | 'FINDING' | 'WIKI' | string;
   clientId?: string;
   projectId?: string;
+  wikiPageId?: string;
 }
 
 export interface Report {

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Folder, Mail, Phone, Globe, MapPin, UserPlus, Upload, FileText, CheckCircle, Clock, Eye, Download } from 'lucide-react';
+import { ArrowLeft, Folder, Mail, Phone, Globe, MapPin, UserPlus, Upload, FileText, CheckCircle, Clock, Eye, Download, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { Client, Project, ClientMember, FileAsset, ActivityLog, Role, Permission } from '../types';
 import { api } from '../services/api';
 import { GlassCard, Button, Badge, KpiCard, Input, Label, Select } from '../components/ui/UIComponents';
@@ -190,6 +191,30 @@ export const ClientDetails: React.FC = () => {
             }
         } catch (err) {
             console.error('File action failed', err);
+        }
+    };
+
+    const handleDeleteFile = async (fileId: string) => {
+        if (!clientId) return;
+        const file = files.find(f => f.id === fileId);
+        const shouldDelete = await confirm({
+            title: t('delete_file'),
+            message: file ? t('confirm_delete_file', { name: file.name }) : t('confirm_delete_file'),
+            confirmText: t('delete') || 'Delete',
+            tone: 'danger',
+        });
+        if (!shouldDelete) return;
+        try {
+            const deleted = await api.clients.deleteFile(clientId, fileId);
+            if (deleted) {
+                loadData();
+                toast.success(t('file_deleted') || 'File deleted');
+            } else {
+                toast.error(t('failed_to_delete_file'));
+            }
+        } catch (err) {
+            console.error('File delete failed', err);
+            toast.error(t('failed_to_delete_file'));
         }
     };
 
@@ -470,6 +495,11 @@ export const ClientDetails: React.FC = () => {
                                             <Button variant="ghost" size="sm" className="p-1 h-7 w-7 text-slate-500 hover:text-white" onClick={() => handleFileAction(f.id, true)}>
                                                 <Download className="w-4 h-4" />
                                             </Button>
+                                            <PermissionGate permission={Permission.MANAGE_CLIENTS}>
+                                                <Button variant="ghost" size="sm" className="p-1 h-7 w-7 text-rose-400 hover:text-rose-300" onClick={() => handleDeleteFile(f.id)}>
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </PermissionGate>
                                         </div>
                                     </div>
                                     <h4 className="font-medium text-slate-200 truncate" title={f.name}>{f.name}</h4>
@@ -559,7 +589,7 @@ export const ClientDetails: React.FC = () => {
                     </div>
                     <div>
                         <Label>{copy.file}</Label>
-                        <Input type="file" required />
+                        <Input type="file" required accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.rtf,image/*" />
                     </div>
                     <div>
                         <Label>{t('file_category')}</Label>
@@ -567,6 +597,7 @@ export const ClientDetails: React.FC = () => {
                             <option value="brief">{t('brief')}</option>
                             <option value="contract">{t('contract')}</option>
                             <option value="invoice">{t('invoice')}</option>
+                            <option value="docs">{t('docs') || 'Docs'}</option>
                             <option value="other">{t('other')}</option>
                         </Select>
                     </div>

@@ -108,6 +108,7 @@ const normalizeFileAsset = (f: any): FileAsset => ({
   scopeType: f.scopeType,
   clientId: f.clientId,
   projectId: f.projectId,
+  wikiPageId: f.wikiPageId,
 });
 
 const normalizeReport = (report: any): Report => ({
@@ -447,6 +448,15 @@ export const api = {
       } catch (e) {
         console.error('Failed to get file URL:', e);
         return undefined;
+      }
+    },
+    deleteFile: async (clientId: string, fileId: string): Promise<boolean> => {
+      try {
+        await fetchApi(`/clients/${clientId}/files/${fileId}`, { method: 'DELETE' });
+        return true;
+      } catch (e) {
+        console.error('Failed to delete client file:', e);
+        return false;
       }
     },
     getActivity: async (clientId: string): Promise<ActivityLog[]> => {
@@ -1391,6 +1401,56 @@ export const api = {
       fetchApi(`/wiki/pages/${id}`, { method: 'PATCH', body: JSON.stringify(dto) }),
     delete: async (id: string) => fetchApi(`/wiki/pages/${id}`, { method: 'DELETE' }),
     getVersions: async (pageId: string) => fetchApi(`/wiki/pages/${pageId}/versions`),
+    getFiles: async (pageId: string): Promise<FileAsset[]> => {
+      try {
+        const files = await fetchApi(`/wiki/pages/${pageId}/files`);
+        return (files || []).map(normalizeFileAsset);
+      } catch (e) {
+        console.error('Failed to get wiki attachments:', e);
+        return [];
+      }
+    },
+    uploadFile: async (pageId: string, file: File, displayName?: string): Promise<FileAsset | undefined> => {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        if (displayName) formData.append('displayName', displayName);
+
+        const response = await fetch(`${API_URL}/wiki/pages/${pageId}/files`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          },
+          body: formData
+        });
+
+        if (!response.ok) throw new Error('Upload failed');
+        const result = await response.json();
+        return normalizeFileAsset(result);
+      } catch (e) {
+        console.error('Failed to upload wiki attachment:', e);
+        return undefined;
+      }
+    },
+    downloadFile: async (pageId: string, fileId: string, download: boolean = true): Promise<string | undefined> => {
+      try {
+        const mode = download ? 'download' : 'view';
+        const result = await fetchApi(`/wiki/pages/${pageId}/files/${fileId}/${mode}`);
+        return result.url;
+      } catch (e) {
+        console.error('Failed to get wiki attachment URL:', e);
+        return undefined;
+      }
+    },
+    deleteFile: async (pageId: string, fileId: string): Promise<boolean> => {
+      try {
+        await fetchApi(`/wiki/pages/${pageId}/files/${fileId}`, { method: 'DELETE' });
+        return true;
+      } catch (e) {
+        console.error('Failed to delete wiki attachment:', e);
+        return false;
+      }
+    },
   },
 
   analytics: {

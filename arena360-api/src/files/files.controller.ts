@@ -66,11 +66,20 @@ export class FilesController {
     async viewClientFile(
         @Request() req: any,
         @Param('clientId') clientId: string,
-        @Param('fileId') fileId: string,
-        @Res() res: Response
+        @Param('fileId') fileId: string
     ) {
         const signedUrl = await this.filesService.downloadClientFile(clientId, fileId, req.user);
-        return res.redirect(signedUrl);
+        return { url: signedUrl };
+    }
+
+    @Delete('clients/:clientId/files/:fileId')
+    async deleteClientFile(
+        @Request() req: any,
+        @Param('clientId') clientId: string,
+        @Param('fileId') fileId: string
+    ) {
+        await this.filesService.deleteClientFile(clientId, fileId, req.user);
+        return { message: 'File deleted successfully' };
     }
 
     // === PROJECT FILES ===

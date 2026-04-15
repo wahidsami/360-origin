@@ -1,11 +1,16 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
+import { StorageService } from '../common/storage.service';
 import { UserWithRoles } from '../common/utils/scope.utils';
 import { CreateWikiPageDto, UpdateWikiPageDto } from './dto/wiki.dto';
+import { FileCategory } from '@prisma/client';
 
 @Injectable()
 export class WikiService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   private async ensureOrg(orgId: string, user: UserWithRoles) {
     if (user.orgId !== orgId) throw new ForbiddenException('Access denied');
@@ -19,6 +24,39 @@ export class WikiService {
       .replace(/[^a-z0-9-_]/g, '')
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
+  }
+
+  private resolveMimeType(filename: string, originalMime: string): string {
+    if (originalMime !== 'application/octet-stream' && originalMime !== '') return originalMime;
+    const ext = filename.split('.').pop()?.toLowerCase();
+    const mimeMap: Record<string, string> = {
+      pdf: 'application/pdf',
+      doc: 'application/msword',
+      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      xls: 'application/vnd.ms-excel',
+      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      ppt: 'application/vnd.ms-powerpoint',
+      pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      txt: 'text/plain',
+      rtf: 'application/rtf',
+      png: 'image/png',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      gif: 'image/gif',
+      webp: 'image/webp',
+      svg: 'image/svg+xml',
+      bmp: 'image/bmp',
+    };
+    return (ext && mimeMap[ext]) || originalMime || 'application/octet-stream';
+  }
+
+  private async ensurePage(orgId: string, id: string, user: UserWithRoles) {
+    await this.ensureOrg(orgId, user);
+    const page = await this.prisma.wikiPage.findFirst({
+      where: { id, orgId, deletedAt: null },
+    });
+    if (!page) throw new NotFoundException('Wiki page not found');
+    return page;
   }
 
   private async ensureUniqueSlug(orgId: string, slug: string, excludePageId?: string) {
@@ -42,6 +80,8 @@ export class WikiService {
       index += 1;
     }
   }
+
+  private readonly wikiScopeType = 'WIKI' as any;
 
   async listPages(orgId: string, user: UserWithRoles) {
     await this.ensureOrg(orgId, user);
@@ -127,15 +167,84 @@ export class WikiService {
   }
 
   async getVersions(orgId: string, pageId: string, user: UserWithRoles) {
-    await this.ensureOrg(orgId, user);
-    const page = await this.prisma.wikiPage.findFirst({
-      where: { id: pageId, orgId, deletedAt: null },
-    });
-    if (!page) throw new NotFoundException('Wiki page not found');
+    await this.ensurePage(orgId, pageId, user);
     return this.prisma.wikiPageVersion.findMany({
       where: { pageId },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
+  }
+
+  async listAttachments(orgId: string, pageId: string, user: UserWithRoles) {
+    await this.ensurePage(orgId, pageId, user);
+    return this.prisma.fileAsset.findMany({
+      where: {
+        orgId,
+        scopeType: this.wikiScopeType,
+        wikiPageId: pageId,
+        deletedAt: null,
+      } as any,
+      include: {
+        uploader: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async uploadAttachment(orgId: string, pageId: string, user: UserWithRoles, file: Express.Multer.File, displayName?: string) {
+    const page = await this.ensurePage(orgId, pageId, user);
+    if (!file) throw new BadRequestException('No file provided');
+
+    const storageKey = this.storage.generateStorageKey(orgId, this.wikiScopeType, page.id, FileCategory.DOCS, file.originalname);
+    await this.storage.putObject(storageKey, file.buffer, file.mimetype);
+
+    return this.prisma.fileAsset.create({
+      data: {
+        orgId,
+        scopeType: this.wikiScopeType,
+        wikiPageId: page.id,
+        uploaderId: user.id,
+        category: FileCategory.DOCS,
+        visibility: 'INTERNAL',
+        filename: displayName || file.originalname,
+        mimeType: this.resolveMimeType(file.originalname, file.mimetype),
+        sizeBytes: file.size,
+        storageKey,
+      } as any,
+      include: {
+        uploader: { select: { id: true, name: true, email: true } },
+      },
+    });
+  }
+
+  async downloadAttachment(orgId: string, pageId: string, fileId: string, user: UserWithRoles, download = false) {
+    await this.ensurePage(orgId, pageId, user);
+    const file = await this.prisma.fileAsset.findFirst({
+      where: {
+        id: fileId,
+        orgId,
+        wikiPageId: pageId,
+        scopeType: this.wikiScopeType,
+        deletedAt: null,
+      } as any,
+    });
+    if (!file) throw new NotFoundException('Attachment not found');
+    return this.storage.getSignedUrl(file.storageKey, 3600, download);
+  }
+
+  async deleteAttachment(orgId: string, pageId: string, fileId: string, user: UserWithRoles) {
+    await this.ensurePage(orgId, pageId, user);
+    const file = await this.prisma.fileAsset.findFirst({
+      where: {
+        id: fileId,
+        orgId,
+        wikiPageId: pageId,
+        scopeType: this.wikiScopeType,
+        deletedAt: null,
+      } as any,
+    });
+    if (!file) throw new NotFoundException('Attachment not found');
+    await this.storage.deleteObject(file.storageKey);
+    await this.prisma.fileAsset.delete({ where: { id: fileId } });
   }
 }

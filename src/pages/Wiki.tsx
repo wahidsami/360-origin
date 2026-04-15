@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, Plus, Pencil, Trash2, Save, X, History } from 'lucide-react';
+import { BookOpen, Plus, Pencil, Trash2, Save, X, History, Upload, Eye, Download } from 'lucide-react';
 import { GlassCard, Button, Input, Label, Modal } from '../components/ui/UIComponents';
 import { api } from '../services/api';
 import toast from 'react-hot-toast';
 import { useAppDialog } from '../contexts/DialogContext';
+import { DocumentViewer } from '../components/DocumentViewer';
+import { FileAsset } from '../types';
 
 type WikiPageItem = { id: string; slug: string; title: string; updatedAt: string };
 
@@ -17,12 +19,17 @@ const Wiki: React.FC = () => {
   const slugParam = searchParams.get('slug') || '';
   const [pages, setPages] = useState<WikiPageItem[]>([]);
   const [current, setCurrent] = useState<{ id: string; slug: string; title: string; body: string; updatedAt: string } | null>(null);
+  const [attachments, setAttachments] = useState<FileAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({ slug: '', title: '', body: '' });
   const [saving, setSaving] = useState(false);
   const [versions, setVersions] = useState<{ id: string; title: string; createdAt: string }[]>([]);
   const [versionsModalOpen, setVersionsModalOpen] = useState(false);
+  const [attachmentModalOpen, setAttachmentModalOpen] = useState(false);
+  const [attachmentSaving, setAttachmentSaving] = useState(false);
+  const [attachmentForm, setAttachmentForm] = useState({ displayName: '' });
+  const [selectedAttachment, setSelectedAttachment] = useState<{ isOpen: boolean; url: string; filename: string; mimeType: string; fileId: string } | null>(null);
 
   const loadPages = async () => {
     try {
@@ -42,6 +49,7 @@ const Wiki: React.FC = () => {
   useEffect(() => {
     if (!slugParam) {
       setCurrent(null);
+      setAttachments([]);
       return;
     }
     let cancelled = false;
@@ -50,13 +58,35 @@ const Wiki: React.FC = () => {
         const page = await api.wiki.getBySlug(slugParam);
         if (!cancelled) setCurrent(page as any);
       } catch {
-        if (!cancelled) setCurrent(null);
+        if (!cancelled) {
+          setCurrent(null);
+          setAttachments([]);
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
   }, [slugParam]);
+
+  useEffect(() => {
+    if (!current?.id) {
+      setAttachments([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await api.wiki.getFiles(current.id);
+        if (!cancelled) setAttachments(list || []);
+      } catch {
+        if (!cancelled) setAttachments([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [current?.id]);
 
   const openCreate = () => {
     setEditForm({ slug: '', title: '', body: '' });
@@ -123,6 +153,80 @@ const Wiki: React.FC = () => {
     }
   };
 
+  const openAttachment = async (attachment: FileAsset, download: boolean = false) => {
+    if (!current?.id) return;
+    try {
+      const url = await api.wiki.downloadFile(current.id, attachment.id, download);
+      if (!url) return;
+      if (download) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '';
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+      }
+      setSelectedAttachment({
+        isOpen: true,
+        url,
+        filename: attachment.name,
+        mimeType: attachment.mimeType || attachment.type || 'application/octet-stream',
+        fileId: attachment.id,
+      });
+    } catch (error) {
+      console.error('Failed to open attachment', error);
+      toast.error(t('wiki_attachment_open_error'));
+    }
+  };
+
+  const handleAttachmentUpload = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!current?.id) return;
+    const form = e.currentTarget;
+    const fileInput = form.querySelector<HTMLInputElement>('input[type="file"]');
+    const file = fileInput?.files?.[0];
+    if (!file) {
+      toast.error(t('wiki_attachment_required'));
+      return;
+    }
+    setAttachmentSaving(true);
+    try {
+      const result = await api.wiki.uploadFile(current.id, file, attachmentForm.displayName.trim() || undefined);
+      if (!result) throw new Error('Upload failed');
+      toast.success(t('wiki_attachment_uploaded'));
+      setAttachmentModalOpen(false);
+      setAttachmentForm({ displayName: '' });
+      form.reset();
+      const list = await api.wiki.getFiles(current.id);
+      setAttachments(list || []);
+    } catch (error: any) {
+      toast.error(error?.message || t('wiki_attachment_upload_error'));
+    } finally {
+      setAttachmentSaving(false);
+    }
+  };
+
+  const handleDeleteAttachment = async (attachment: FileAsset) => {
+    if (!current?.id) return;
+    const shouldDelete = await confirm({
+      title: t('wiki_attachment_delete_title'),
+      message: t('wiki_attachment_delete_message'),
+      confirmText: t('delete'),
+      tone: 'danger',
+    });
+    if (!shouldDelete) return;
+    try {
+      await api.wiki.deleteFile(current.id, attachment.id);
+      toast.success(t('wiki_attachment_deleted'));
+      const list = await api.wiki.getFiles(current.id);
+      setAttachments(list || []);
+    } catch (error) {
+      toast.error(t('wiki_attachment_delete_error'));
+    }
+  };
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
@@ -167,6 +271,9 @@ const Wiki: React.FC = () => {
                 <Button variant="outline" size="sm" onClick={() => openVersions(current.id)}>
                   <History className="w-4 h-4 mr-1" /> {t('wiki_history')}
                 </Button>
+                <Button variant="outline" size="sm" onClick={() => setAttachmentModalOpen(true)}>
+                  <Upload className="w-4 h-4 mr-1" /> {t('wiki_upload_attachment')}
+                </Button>
                 <Button variant="ghost" size="sm" className="text-rose-400" onClick={() => handleDelete(current.id)}>
                   <Trash2 className="w-4 h-4 mr-1" /> {t('delete')}
                 </Button>
@@ -174,6 +281,31 @@ const Wiki: React.FC = () => {
               <div className="prose prose-invert max-w-none">
                 <div className="text-slate-400 text-sm mb-2">{t('wiki_updated')} {new Date(current.updatedAt).toLocaleString(isArabic ? 'ar' : 'en')}</div>
                 <div className="whitespace-pre-wrap text-slate-200">{current.body}</div>
+              </div>
+              <div className="mt-6">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400 mb-3">{t('wiki_attachments')}</h3>
+                <div className="space-y-3">
+                  {attachments.map((attachment) => (
+                    <div key={attachment.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-700/70 bg-slate-900/40 px-4 py-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-slate-100" title={attachment.name}>{attachment.name}</p>
+                        <p className="text-xs text-slate-500">{attachment.mimeType || attachment.type || 'application/octet-stream'}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => openAttachment(attachment, false)}>
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => openAttachment(attachment, true)}>
+                          <Download className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-rose-400" onClick={() => handleDeleteAttachment(attachment)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {attachments.length === 0 && <p className="text-slate-500 text-sm italic">{t('wiki_no_attachments')}</p>}
+                </div>
               </div>
             </>
           ) : (
@@ -214,6 +346,44 @@ const Wiki: React.FC = () => {
           {versions.length === 0 && <p className="text-slate-500 text-sm">{t('wiki_no_versions')}</p>}
         </ul>
       </Modal>
+
+      <Modal isOpen={attachmentModalOpen} onClose={() => setAttachmentModalOpen(false)} title={t('wiki_upload_attachment')}>
+        <form onSubmit={handleAttachmentUpload} className="space-y-4">
+          <div>
+            <Label>{t('file_name')}</Label>
+            <Input
+              value={attachmentForm.displayName}
+              onChange={(e) => setAttachmentForm((f) => ({ ...f, displayName: e.target.value }))}
+              placeholder={t('wiki_attachment_name_placeholder')}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label>{t('file_name')}</Label>
+            <Input type="file" required accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.rtf,image/*" />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={() => setAttachmentModalOpen(false)}><X className="w-4 h-4 mr-1" /> {t('cancel')}</Button>
+            <Button type="submit" disabled={attachmentSaving}>{attachmentSaving ? t('wiki_saving') : t('upload')}</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {selectedAttachment && (
+        <Modal
+          isOpen={selectedAttachment.isOpen}
+          onClose={() => setSelectedAttachment(null)}
+          title={selectedAttachment.filename}
+          maxWidth="max-w-4xl"
+        >
+          <DocumentViewer
+            url={selectedAttachment.url}
+            filename={selectedAttachment.filename}
+            mimeType={selectedAttachment.mimeType}
+            onDownload={() => openAttachment({ id: selectedAttachment.fileId } as FileAsset, true)}
+          />
+        </Modal>
+      )}
     </div>
   );
 };

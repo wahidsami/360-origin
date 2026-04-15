@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Briefcase, Flag, Clock, FileText, ArrowUpRight } from 'lucide-react';
-import { GlassCard, KpiCard, Badge } from "@/components/ui/UIComponents";
+import { Briefcase, Flag, Clock, FileText, ArrowUpRight, Eye, Download } from 'lucide-react';
+import { GlassCard, KpiCard, Badge, Button } from "@/components/ui/UIComponents";
 import { ToolsPanel } from '@/components/ToolsPanel';
 import { api } from '@/services/api';
 import { Role } from '@/types';
@@ -30,6 +30,28 @@ export const ClientDashboard: React.FC<{ role: Role }> = ({ role }) => {
          }
       } catch (error) {
          console.error('Failed to open shared file:', error);
+      }
+   };
+
+   const handleDownloadSharedFile = async (file: any) => {
+      try {
+         let url: string | undefined;
+         if (file?.projectId) {
+            url = await api.projects.downloadFile(file.projectId, file.id, true);
+         } else if (file?.clientId) {
+            url = await api.clients.downloadFile(file.clientId, file.id, true);
+         }
+         if (url) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '';
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+         }
+      } catch (error) {
+         console.error('Failed to download shared file:', error);
       }
    };
 
@@ -141,11 +163,12 @@ export const ClientDashboard: React.FC<{ role: Role }> = ({ role }) => {
                <GlassCard id="shared-files" title={t('shared_files')}>
                   <div className="space-y-3 mt-4">
                      {(stats.files || []).map((f: any) => (
-                        <button
+                        <div
                            key={f.id}
-                           type="button"
                            onClick={() => handleOpenSharedFile(f)}
-                           className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700/50 group text-left"
+                           role="button"
+                           tabIndex={0}
+                           className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-700/50 group text-left cursor-pointer"
                         >
                            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 group-hover:text-cyan-500 transition-colors">
                               <FileText className="w-5 h-5" />
@@ -154,8 +177,34 @@ export const ClientDashboard: React.FC<{ role: Role }> = ({ role }) => {
                               <p className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate tracking-tight">{f.name}</p>
                               <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">{new Date(f.uploadedAt).toLocaleDateString()}</p>
                            </div>
-                           <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-cyan-500 transition-colors" />
-                        </button>
+                           <div className="flex items-center gap-1">
+                              <Button
+                                 type="button"
+                                 variant="ghost"
+                                 size="sm"
+                                 className="p-1 h-7 w-7 text-slate-400 hover:text-cyan-500"
+                                 onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleOpenSharedFile(f);
+                                 }}
+                              >
+                                 <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                 type="button"
+                                 variant="ghost"
+                                 size="sm"
+                                 className="p-1 h-7 w-7 text-slate-400 hover:text-cyan-500"
+                                 onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleDownloadSharedFile(f);
+                                 }}
+                              >
+                                 <Download className="w-4 h-4" />
+                              </Button>
+                              <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-cyan-500 transition-colors" />
+                           </div>
+                        </div>
                      ))}
                      {(!stats.files || stats.files.length === 0) && <p className="text-slate-500 text-sm font-medium text-center py-6 italic">{t('no_shared_assets')}</p>}
                   </div>

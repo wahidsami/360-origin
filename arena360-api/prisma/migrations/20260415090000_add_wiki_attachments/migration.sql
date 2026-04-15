@@ -1,0 +1,11 @@
+ALTER TYPE "FileScopeType" ADD VALUE IF NOT EXISTS 'WIKI';
+
+ALTER TABLE "FileAsset"
+ADD COLUMN IF NOT EXISTS "wikiPageId" TEXT;
+
+ALTER TABLE "FileAsset"
+ADD CONSTRAINT "FileAsset_wikiPageId_fkey"
+FOREIGN KEY ("wikiPageId") REFERENCES "WikiPage"("id")
+ON DELETE CASCADE ON UPDATE CASCADE;
+
+CREATE INDEX IF NOT EXISTS "FileAsset_wikiPageId_idx" ON "FileAsset"("wikiPageId");

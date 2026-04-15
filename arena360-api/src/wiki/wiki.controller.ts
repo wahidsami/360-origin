@@ -8,7 +8,11 @@ import {
   Param,
   UseGuards,
   Request,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { WikiService } from './wiki.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CreateWikiPageDto, UpdateWikiPageDto } from './dto/wiki.dto';
@@ -55,5 +59,52 @@ export class WikiController {
   @Get('pages/:id/versions')
   getVersions(@Request() req: any, @Param('id') id: string) {
     return this.service.getVersions(req.user.orgId, id, req.user);
+  }
+
+  @Get('pages/:id/files')
+  listAttachments(@Request() req: any, @Param('id') id: string) {
+    return this.service.listAttachments(req.user.orgId, id, req.user);
+  }
+
+  @Post('pages/:id/files')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024 } }))
+  uploadAttachment(
+    @Request() req: any,
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body('displayName') displayName?: string,
+  ) {
+    if (!file) throw new BadRequestException('No file provided');
+    return this.service.uploadAttachment(req.user.orgId, id, req.user, file, displayName);
+  }
+
+  @Get('pages/:id/files/:fileId/download')
+  async downloadAttachment(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Param('fileId') fileId: string,
+  ) {
+    const url = await this.service.downloadAttachment(req.user.orgId, id, fileId, req.user, true);
+    return { url };
+  }
+
+  @Get('pages/:id/files/:fileId/view')
+  async viewAttachment(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Param('fileId') fileId: string,
+  ) {
+    const url = await this.service.downloadAttachment(req.user.orgId, id, fileId, req.user, false);
+    return { url };
+  }
+
+  @Delete('pages/:id/files/:fileId')
+  async deleteAttachment(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Param('fileId') fileId: string,
+  ) {
+    await this.service.deleteAttachment(req.user.orgId, id, fileId, req.user);
+    return { message: 'Attachment deleted successfully' };
   }
 }

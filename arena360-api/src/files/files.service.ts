@@ -190,6 +190,44 @@ export class FilesService {
         return this.storage.getSignedUrl(file.storageKey, 3600, download);
     }
 
+    async deleteClientFile(clientId: string, fileId: string, user: UserWithRoles): Promise<void> {
+        const internalRoles = ['SUPER_ADMIN', 'OPS', 'PM', 'DEV', 'QA'];
+        if (!internalRoles.includes(user.role)) {
+            throw new ForbiddenException('Only internal staff can delete files');
+        }
+
+        const clientScope = ScopeUtils.clientScope(user, 'id');
+        const client = await this.prisma.client.findFirst({
+            where: {
+                orgId: user.orgId,
+                AND: [
+                    { id: clientId },
+                    clientScope.id ? { id: clientScope.id } : {},
+                ],
+            }
+        });
+
+        if (!client) {
+            throw new NotFoundException('Client not found');
+        }
+
+        const file = await this.prisma.fileAsset.findFirst({
+            where: {
+                id: fileId,
+                clientId,
+                scopeType: 'CLIENT',
+                orgId: user.orgId
+            }
+        });
+
+        if (!file) {
+            throw new NotFoundException('File not found');
+        }
+
+        await this.storage.deleteObject(file.storageKey);
+        await this.prisma.fileAsset.delete({ where: { id: fileId } });
+    }
+
     // === PROJECT FILES ===
 
     async listProjectFiles(projectId: string, user: UserWithRoles) {
